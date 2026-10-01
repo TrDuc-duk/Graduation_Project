@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# ML outputs (tạo lại bằng pipeline, lưu Drive khi chạy Colab)
+ml_*/models/*
+!ml_*/models/.gitkeep
+
+# Notebook checkpoints
+.ipynb_checkpoints/
