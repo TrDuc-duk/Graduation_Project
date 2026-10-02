@@ -1,0 +1,290 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1100" viewBox="0 0 1500 1100" font-family="'Segoe UI', 'Noto Sans', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arr-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0F766E"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .title { font-size: 22px; font-weight: 700; fill: #0F172A; }
+      .subtitle { font-size: 13px; fill: #64748B; }
+      .tier { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; }
+      .h { font-size: 17px; font-weight: 700; fill: #0F172A; }
+      .h2 { font-size: 16px; font-weight: 700; fill: #0F172A; }
+      .muted { font-size: 12px; fill: #64748B; }
+      .name { font-size: 13px; font-weight: 600; fill: #0F172A; }
+      .desc { font-size: 11.5px; fill: #64748B; }
+      .item { font-size: 12.5px; fill: #334155; }
+      .lbl { font-size: 11px; fill: #475569; }
+      .lbl-teal { font-size: 11px; fill: #0F766E; font-weight: 600; }
+      .chip { font-size: 12px; font-weight: 600; fill: #1E3A8A; }
+      .badge { font-size: 10px; font-weight: 700; fill: #0F766E; }
+      .step { font-size: 12px; font-weight: 700; fill: #FFFFFF; }
+      .steptxt { font-size: 12.5px; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="1100" fill="#FFFFFF"/>
+
+  <!-- ========== Cụm máy chủ ========== -->
+  <rect x="700" y="124" width="490" height="944" rx="18" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="8 6"/>
+
+  <!-- Tiêu đề -->
+  <text x="40" y="46" class="title">Kiến trúc hệ thống quan trắc &amp; dự đoán chất lượng không khí</text>
+  <text x="40" y="70" class="subtitle">ESP32 · LoRa 433 MHz · FastAPI · TimescaleDB + PostGIS · MinIO · XGBoost · React · Xiaozhi (đề xuất)</text>
+
+  <!-- Nhãn tầng -->
+  <text x="40" y="112" class="tier" fill="#0F766E">TẦNG CẢM BIẾN</text>
+  <text x="380" y="112" class="tier" fill="#0F766E">TẦNG TRUNG CHUYỂN</text>
+  <text x="700" y="112" class="tier" fill="#334155">TẦNG MÁY CHỦ · DOCKER COMPOSE</text>
+  <text x="1260" y="112" class="tier" fill="#BE185D">TẦNG HIỂN THỊ</text>
+
+  <!-- ========== Sensor Node (xếp chồng = nhiều node) ========== -->
+  <rect x="52" y="128" width="250" height="460" rx="14" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1.5"/>
+  <rect x="46" y="134" width="250" height="460" rx="14" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <rect x="40" y="140" width="250" height="460" rx="14" fill="#F0FDFA" stroke="#0F766E" stroke-width="2" filter="url(#shadow)"/>
+  <text x="60" y="172" class="h">Sensor Node × N</text>
+  <text x="60" y="192" class="muted">ESP32 DevKit V1 · pin 18650</text>
+  <line x1="60" y1="206" x2="270" y2="206" stroke="#99F6E4"/>
+
+  <g>
+    <text x="60" y="234" class="name">PMS7003</text>
+    <text x="60" y="251" class="desc">PM1 · PM2.5 · PM10</text>
+    <rect x="226" y="222" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="235" class="badge" text-anchor="middle">UART</text>
+
+    <text x="60" y="284" class="name">CCS811</text>
+    <text x="60" y="301" class="desc">eCO2 · TVOC</text>
+    <rect x="226" y="272" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="285" class="badge" text-anchor="middle">I2C</text>
+
+    <text x="60" y="334" class="name">AHT10</text>
+    <text x="60" y="351" class="desc">Nhiệt độ · Độ ẩm</text>
+    <rect x="226" y="322" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="335" class="badge" text-anchor="middle">I2C</text>
+
+    <text x="60" y="384" class="name">AS32-TTL-100</text>
+    <text x="60" y="401" class="desc">LoRa SX1278 · 433 MHz · 20 dBm</text>
+    <rect x="226" y="372" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="385" class="badge" text-anchor="middle">UART</text>
+
+    <text x="60" y="434" class="name">OLED SSD1306</text>
+    <text x="60" y="451" class="desc">Hiển thị khi nhấn nút</text>
+    <rect x="226" y="422" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="435" class="badge" text-anchor="middle">I2C</text>
+
+    <text x="60" y="484" class="name">Pin 18650 Li-ion</text>
+    <text x="60" y="501" class="desc">Đo mức pin qua phân áp</text>
+    <rect x="226" y="472" width="44" height="18" rx="9" fill="#CCFBF1"/>
+    <text x="248" y="485" class="badge" text-anchor="middle">ADC</text>
+  </g>
+
+  <rect x="56" y="522" width="218" height="60" rx="10" fill="#CCFBF1"/>
+  <text x="165" y="547" class="name" text-anchor="middle" fill="#115E59">Deep-sleep 30 phút</text>
+  <text x="165" y="567" class="desc" text-anchor="middle" fill="#0F766E">thức ~33 s mỗi chu kỳ đo</text>
+
+  <!-- LoRa: Sensor Node → Gateway -->
+  <line x1="290" y1="250" x2="378" y2="250" stroke="#0F766E" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr-teal)"/>
+  <text x="335" y="240" class="lbl-teal" text-anchor="middle">LoRa 433 MHz</text>
+  <text x="335" y="267" class="lbl" text-anchor="middle">gói 18 byte</text>
+  <circle cx="335" cy="292" r="11" fill="#0F172A"/>
+  <text x="335" y="296" class="step" text-anchor="middle">1</text>
+
+  <!-- ========== Gateway ========== -->
+  <rect x="380" y="140" width="200" height="250" rx="14" fill="#F0FDFA" stroke="#0F766E" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="172" class="h">Gateway</text>
+  <text x="400" y="192" class="muted">ESP32 + AS32-TTL-100</text>
+  <line x1="400" y1="206" x2="560" y2="206" stroke="#99F6E4"/>
+  <circle cx="404" cy="228" r="3" fill="#0F766E"/>
+  <text x="414" y="232" class="item">Nhận &amp; giải mã gói LoRa</text>
+  <circle cx="404" cy="254" r="3" fill="#0F766E"/>
+  <text x="414" y="258" class="item">Ring buffer</text>
+  <circle cx="404" cy="280" r="3" fill="#0F766E"/>
+  <text x="414" y="284" class="item">Gán timestamp (NTP)</text>
+  <circle cx="404" cy="306" r="3" fill="#0F766E"/>
+  <text x="414" y="310" class="item">Heartbeat định kỳ</text>
+  <rect x="400" y="334" width="160" height="34" rx="10" fill="#CCFBF1"/>
+  <text x="480" y="356" class="name" text-anchor="middle" fill="#115E59">Nguồn 5V · WiFi</text>
+
+  <text x="380" y="422" class="name">Hub-Spoke</text>
+  <text x="380" y="441" class="desc">N Sensor Node → 1 Gateway</text>
+  <text x="380" y="459" class="desc">Tầm phủ thực đo ~800 m (LOS)</text>
+  <text x="380" y="477" class="desc">Dedup khi nhiều Gateway nhận</text>
+  <text x="380" y="495" class="desc">cùng một gói tin</text>
+
+  <!-- HTTP: Gateway → Nginx -->
+  <line x1="580" y1="182" x2="728" y2="182" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="640" y="172" class="lbl" text-anchor="middle" font-weight="600">HTTP POST</text>
+  <text x="640" y="200" class="lbl" text-anchor="middle">JSON batch</text>
+  <circle cx="640" cy="224" r="11" fill="#0F172A"/>
+  <text x="640" y="228" class="step" text-anchor="middle">2</text>
+
+
+  <!-- Nginx -->
+  <rect x="730" y="146" width="430" height="72" rx="12" fill="#F1F5F9" stroke="#475569" stroke-width="2" filter="url(#shadow)"/>
+  <text x="752" y="176" class="h2">Nginx</text>
+  <text x="752" y="200" class="muted">Reverse proxy /api, /ws · phục vụ bản build React</text>
+
+  <!-- Nginx → FastAPI -->
+  <line x1="945" y1="218" x2="945" y2="266" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="955" y="246" class="lbl">/api · /ws</text>
+
+  <!-- FastAPI -->
+  <rect x="730" y="268" width="430" height="156" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2" filter="url(#shadow)"/>
+  <text x="752" y="298" class="h2">FastAPI</text>
+  <text x="824" y="298" class="muted">Backend / API · Python</text>
+  <circle cx="1138" cy="292" r="11" fill="#0F172A"/>
+  <text x="1138" y="296" class="step" text-anchor="middle">3</text>
+
+  <rect x="748" y="320" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="808" y="340" class="chip" text-anchor="middle">Ingest · dedup</text>
+  <rect x="885" y="320" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="945" y="340" class="chip" text-anchor="middle">Tính AQI (EPA)</text>
+  <rect x="1022" y="320" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="1082" y="340" class="chip" text-anchor="middle">Cảnh báo</text>
+  <rect x="748" y="362" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="808" y="382" class="chip" text-anchor="middle">REST API</text>
+  <rect x="885" y="362" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="945" y="382" class="chip" text-anchor="middle">WebSocket/SSE</text>
+  <rect x="1022" y="362" width="120" height="30" rx="8" fill="#DBEAFE"/>
+  <text x="1082" y="382" class="chip" text-anchor="middle">Inference</text>
+  <text x="752" y="412" class="desc">Offline: node 40 phút · gateway 5 phút · AQI MCP /mcp (dự kiến)</text>
+
+  <!-- FastAPI ↔ TimescaleDB -->
+  <line x1="832" y1="426" x2="832" y2="472" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="842" y="453" class="lbl">đọc / ghi</text>
+
+  <!-- MinIO → FastAPI -->
+  <line x1="1057" y1="474" x2="1057" y2="428" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1067" y="453" class="lbl">load model</text>
+  <circle cx="1146" cy="449" r="11" fill="#0F172A"/>
+  <text x="1146" y="453" class="step" text-anchor="middle">5</text>
+
+  <!-- TimescaleDB (trụ) -->
+  <g filter="url(#shadow)">
+    <path d="M730,489 a102.5,15 0 0 1 205,0 V629 a102.5,15 0 0 1 -205,0 Z" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+    <ellipse cx="832.5" cy="489" rx="102.5" ry="15" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  </g>
+  <text x="832.5" y="530" class="h2" text-anchor="middle">TimescaleDB</text>
+  <text x="832.5" y="548" class="muted" text-anchor="middle">+ PostGIS · DB duy nhất</text>
+  <text x="832.5" y="574" class="desc" text-anchor="middle">hypertable measurements</text>
+  <text x="832.5" y="592" class="desc" text-anchor="middle">hourly_measurements (CAgg)</text>
+  <text x="832.5" y="610" class="desc" text-anchor="middle">trạm · cảnh báo · người dùng</text>
+
+  <!-- MinIO (trụ) -->
+  <g filter="url(#shadow)">
+    <path d="M955,489 a102.5,15 0 0 1 205,0 V629 a102.5,15 0 0 1 -205,0 Z" fill="#FFFBEB" stroke="#B45309" stroke-width="2"/>
+    <ellipse cx="1057.5" cy="489" rx="102.5" ry="15" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+  </g>
+  <text x="1057.5" y="530" class="h2" text-anchor="middle">MinIO</text>
+  <text x="1057.5" y="548" class="muted" text-anchor="middle">Object storage</text>
+  <text x="1057.5" y="574" class="desc" text-anchor="middle">dataset CSV (~41k dòng giờ)</text>
+  <text x="1057.5" y="592" class="desc" text-anchor="middle">model artifact XGBoost</text>
+
+  <!-- Training → TimescaleDB, Training ↔ MinIO -->
+  <line x1="832" y1="700" x2="832" y2="648" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="842" y="679" class="lbl">đọc dữ liệu giờ</text>
+  <line x1="1057" y1="700" x2="1057" y2="648" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="1067" y="679" class="lbl">dataset / model</text>
+
+  <!-- Training -->
+  <rect x="730" y="702" width="430" height="76" rx="12" fill="#FFF7ED" stroke="#EA580C" stroke-width="2" filter="url(#shadow)"/>
+  <text x="752" y="732" class="h2">XGBoost training</text>
+  <text x="752" y="756" class="muted">Script Python · định kỳ / theo yêu cầu · AQI 3h–72h</text>
+  <circle cx="1138" cy="726" r="11" fill="#0F172A"/>
+  <text x="1138" y="730" class="step" text-anchor="middle">4</text>
+
+  <!-- Nginx ↔ Trình duyệt -->
+  <line x1="1162" y1="182" x2="1258" y2="182" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="1210" y="172" class="lbl" text-anchor="middle" font-weight="600">HTTPS</text>
+  <text x="1210" y="200" class="lbl" text-anchor="middle">REST · WS/SSE</text>
+
+  <!-- ========== Frontend ========== -->
+  <rect x="1260" y="140" width="200" height="330" rx="14" fill="#FDF2F8" stroke="#DB2777" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1280" y="172" class="h">Trình duyệt</text>
+  <text x="1280" y="192" class="muted">React + Vite · SPA · TS</text>
+  <line x1="1280" y1="206" x2="1440" y2="206" stroke="#FBCFE8"/>
+  <text x="1280" y="234" class="name">ECharts</text>
+  <text x="1280" y="251" class="desc">Biểu đồ lịch sử &amp; dự đoán</text>
+  <text x="1280" y="284" class="name">deck.gl + MapLibre</text>
+  <text x="1280" y="301" class="desc">Bản đồ 3D theo AQI</text>
+  <text x="1280" y="334" class="name">React Three Fiber</text>
+  <text x="1280" y="351" class="desc">Hiệu ứng 3D trang chủ</text>
+  <text x="1280" y="384" class="name">React Router</text>
+  <text x="1280" y="401" class="desc">Lazy load theo route</text>
+  <rect x="1276" y="422" width="168" height="32" rx="10" fill="#FCE7F3"/>
+  <text x="1360" y="443" class="desc" text-anchor="middle" fill="#9D174D" font-weight="600">Người dùng · Quản trị viên</text>
+
+  <!-- ========== Luồng dữ liệu ========== -->
+  <rect x="40" y="640" width="620" height="164" rx="14" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="60" y="668" class="name" font-size="14">Luồng dữ liệu</text>
+  <circle cx="70" cy="688" r="9" fill="#0F172A"/><text x="70" y="692" class="step" font-size="11" text-anchor="middle">1</text>
+  <text x="88" y="692" class="steptxt">Sensor Node đo 6 thông số, phát gói LoRa 18 byte mỗi 30 phút</text>
+  <circle cx="70" cy="712" r="9" fill="#0F172A"/><text x="70" y="716" class="step" font-size="11" text-anchor="middle">2</text>
+  <text x="88" y="716" class="steptxt">Gateway giải mã, gom vào ring buffer, gửi HTTP POST theo batch</text>
+  <circle cx="70" cy="736" r="9" fill="#0F172A"/><text x="70" y="740" class="step" font-size="11" text-anchor="middle">3</text>
+  <text x="88" y="740" class="steptxt">FastAPI dedup (nodeId, msgId), tính AQI, lưu DB, đẩy realtime tới web</text>
+  <circle cx="70" cy="760" r="9" fill="#0F172A"/><text x="70" y="764" class="step" font-size="11" text-anchor="middle">4</text>
+  <text x="88" y="764" class="steptxt">Training đọc dữ liệu giờ + dataset, huấn luyện XGBoost, lưu model vào MinIO</text>
+  <circle cx="70" cy="784" r="9" fill="#0F172A"/><text x="70" y="788" class="step" font-size="11" text-anchor="middle">5</text>
+  <text x="88" y="788" class="steptxt">FastAPI load model, dự đoán AQI 3h–72h từ 72 giờ dữ liệu gần nhất</text>
+
+  <!-- ========== Chú giải ========== -->
+  <rect x="1260" y="640" width="200" height="164" rx="14" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="1276" y="668" class="name" font-size="14">Chú giải</text>
+  <line x1="1276" y1="692" x2="1314" y2="692" stroke="#0F766E" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr-teal)"/>
+  <text x="1324" y="696" class="desc">Không dây (LoRa)</text>
+  <line x1="1276" y1="720" x2="1314" y2="720" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1324" y="724" class="desc">Mạng IP (HTTP, WS)</text>
+  <circle cx="1295" cy="748" r="9" fill="#0F172A"/><text x="1295" y="752" class="step" font-size="11" text-anchor="middle">n</text>
+  <text x="1324" y="752" class="desc">Bước luồng dữ liệu</text>
+  <rect x="1278" y="768" width="34" height="20" rx="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="1324" y="782" class="desc">Cụm Docker Compose</text>
+
+  <!-- ========== Nhánh hội thoại Xiaozhi (thiết kế đề xuất) ========== -->
+  <text x="40" y="850" class="tier" fill="#0F766E">KÊNH GIỌNG NÓI · ĐỀ XUẤT, CHƯA TRIỂN KHAI</text>
+
+  <rect x="380" y="875" width="240" height="156" rx="14" fill="#F0FDFA" stroke="#0F766E" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="905" class="h2">Thiết bị Xiaozhi</text>
+  <text x="400" y="927" class="muted">ESP32-S3 · WiFi · nguồn ngoài</text>
+  <text x="400" y="952" class="name">Microphone · loa · nút</text>
+  <text x="400" y="976" class="desc">Thiết bị thoại riêng</text>
+  <text x="400" y="997" class="desc">Hỏi tiếng Việt · nghe kết quả AQI</text>
+  <text x="400" y="1018" class="desc">Giữ nguyên Sensor Node / Gateway</text>
+
+  <text x="40" y="921" class="h2">Người dùng</text>
+  <text x="40" y="944" class="desc">“AQI ở NODE_001 bao nhiêu?”</text>
+  <text x="40" y="965" class="desc">“Dự báo sau 24 giờ thế nào?”</text>
+  <line x1="244" y1="986" x2="378" y2="986" stroke="#0F766E" stroke-width="2" marker-start="url(#arr-teal)" marker-end="url(#arr-teal)"/>
+  <text x="309" y="1007" class="lbl-teal" text-anchor="middle">Giọng nói</text>
+
+  <line x1="622" y1="923" x2="728" y2="923" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="675" y="904" class="lbl" text-anchor="middle">WSS / Opus</text>
+  <text x="675" y="947" class="lbl" text-anchor="middle">qua Nginx</text>
+
+  <rect x="730" y="875" width="430" height="156" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2" filter="url(#shadow)"/>
+  <text x="752" y="905" class="h2">Xiaozhi Server · Python</text>
+  <text x="752" y="929" class="muted">Cài đặt tối giản · chỉ chạy Server</text>
+  <text x="752" y="955" class="name">ASR → LLM + công cụ MCP → TTS</text>
+  <text x="752" y="979" class="desc">AQI hiện tại · lịch sử · dự báo · trạng thái trạm</text>
+  <text x="752" y="1003" class="desc">Số liệu từ FastAPI · dự báo từ XGBoost</text>
+  <text x="752" y="1023" class="desc">Cấu hình ASR / TTS hỗ trợ tiếng Việt</text>
+
+  <!-- MCP nội bộ tới adapter trong FastAPI; đi bên trái các khối server -->
+  <path d="M945,873 V828 H712 V404 H728" fill="none" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="748" y="850" class="lbl">MCP nội bộ /mcp · Streamable HTTP</text>
+  <text x="748" y="1054" class="desc">Adapter trong FastAPI dùng chung nghiệp vụ với REST API</text>
+
+  <rect x="1260" y="875" width="200" height="156" rx="14" fill="#FFFBEB" stroke="#B45309" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1276" y="905" class="h2">Provider AI</text>
+  <text x="1276" y="931" class="name">ASR · LLM · TTS</text>
+  <text x="1276" y="957" class="desc">API bên ngoài hoặc local</text>
+  <text x="1276" y="979" class="desc">Chọn khi triển khai</text>
+  <text x="1276" y="1003" class="desc">Kiểm tra tiếng Việt thực tế</text>
+  <line x1="1162" y1="955" x2="1258" y2="955" stroke="#475569" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="1210" y="944" class="lbl" text-anchor="middle">API</text>
+</svg>

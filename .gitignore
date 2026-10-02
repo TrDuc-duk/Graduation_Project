@@ -14,3 +14,7 @@ ml_*/models/*
 
 # Notebook checkpoints
 .ipynb_checkpoints/
+
+# Promt File
+PLAN.md
+PLAN_REVIEW.md

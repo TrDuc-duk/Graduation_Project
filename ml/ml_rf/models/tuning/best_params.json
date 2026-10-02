@@ -1,0 +1,8 @@
+{
+  "params": {
+    "min_samples_leaf": 10,
+    "max_features": 0.1
+  },
+  "criterion": "mean val RMSE over [3, 24, 72]",
+  "mean_val_RMSE": 36.01758976766044
+}
