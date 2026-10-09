@@ -31,6 +31,9 @@ ml/**/models/*
 /.claude/
 /.codex/
 
+# Tài liệu tham khảo chỉ giữ trên máy
+/docs/Base.pdf
+
 # Secret cục bộ; giữ các file cấu hình mẫu
 .env
 .env.*
