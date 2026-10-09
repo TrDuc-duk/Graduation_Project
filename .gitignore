@@ -1,20 +1,63 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.egg-info/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # Virtual environments
 .venv/
 venv/
 
 # ML outputs (tạo lại bằng pipeline, lưu Drive khi chạy Colab)
-ml_*/models/*
-!ml_*/models/.gitkeep
+ml/**/models/*
+!ml/**/models/.gitkeep
+!ml/**/models/*.sh
 
 # Notebook checkpoints
 .ipynb_checkpoints/
 
-# Promt File
-PLAN.md
-PLAN_REVIEW.md
+# Kế hoạch và hướng dẫn AI cục bộ
+/PLAN*.md
+/[Cc][Ll][Aa][Uu][Dd][Ee]*.md
+/AGENTS.md
+/AGENTS.override.md
+/.agents/
+/.claude/
+/.codex/
+
+# Secret cục bộ; giữ các file cấu hình mẫu
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+/.aws/
+
+# Frontend dependencies và build output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Log, file tạm và cấu hình IDE/hệ điều hành
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Hạ tầng Docker: secret, model triển khai, bản sao lưu
+/models/
+/backups/
