@@ -1,0 +1,9 @@
+# Phiên bản đã kiểm chứng local (Python 3.12); dùng đúng bộ này trên Colab
+pandas==3.0.6
+numpy==2.5.3
+xgboost==3.4.1
+scikit-learn==1.9.1
+matplotlib==3.11.2
+seaborn==0.13.2
+optuna==5.0.0
+pytest==9.1.1

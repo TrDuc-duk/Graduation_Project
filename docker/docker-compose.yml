@@ -1,0 +1,109 @@
+# Hệ thống AQI trên một VPS (backend_design 17). Chạy: cd docker && docker compose up -d
+name: aqi
+
+x-logging: &logging            # xoay vòng log để log không lấp đầy đĩa
+  driver: json-file
+  options: {max-size: 10m, max-file: "3"}
+
+services:
+  # PostgreSQL 16 + TimescaleDB + PostGIS. Không mở cổng ra ngoài.
+  db:
+    image: timescale/timescaledb-ha:pg16
+    environment:
+      POSTGRES_DB: aqi
+      POSTGRES_PASSWORD: ${DB_SUPERUSER_PASSWORD:?Thiếu DB_SUPERUSER_PASSWORD trong .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Thiếu DB_MIGRATOR_PASSWORD trong .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Thiếu DB_APP_PASSWORD trong .env}
+      TIMESCALEDB_TELEMETRY: "off"
+      TS_TUNE_MAX_CONNS: "40"            # không đặt thì timescaledb-tune chỉ cho 25 (database_design 12 cần ~25)
+    volumes:
+      - pg_data:/home/postgres/pgdata
+      - ./db/100_aqi_roles.sh:/docker-entrypoint-initdb.d/100_aqi_roles.sh:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "postgres", "-d", "aqi"]
+      interval: 10s
+      retries: 6
+    mem_limit: 2g                      # timescaledb-tune tự tính shared_buffers... theo giới hạn này (lần khởi tạo đầu)
+    logging: *logging
+    restart: unless-stopped
+
+  # Backend FastAPI: một tiến trình chạy cả API và job nền (APP_ROLE=all). Chỉ Nginx và xiaozhi-bridge gọi tới.
+  api:
+    build: {context: .., dockerfile: backend/Dockerfile}
+    environment:
+      APP_ROLE: all
+      DATABASE_URL: postgresql+psycopg://aqi_app:${DB_APP_PASSWORD}@db:5432/aqi
+      MIGRATION_DATABASE_URL: postgresql+psycopg://aqi_migrator:${DB_MIGRATOR_PASSWORD}@db:5432/aqi
+      MODEL_DIR: /models/xgb
+      JWT_SECRET: ${JWT_SECRET:?Thiếu JWT_SECRET trong .env}
+      GATEWAY_SECRETS: ${GATEWAY_SECRETS:?Thiếu GATEWAY_SECRETS trong .env}
+      PROVISION_KEY: ${PROVISION_KEY:?Thiếu PROVISION_KEY trong .env}
+      ASSISTANT_TOKEN: ${ASSISTANT_TOKEN:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      WEATHER_API_KEY: ${WEATHER_API_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    volumes:
+      - ../models/xgb:/models/xgb:ro      # mỗi phiên bản model một thư mục con (backend_design 8.1)
+    depends_on:
+      db: {condition: service_healthy}
+    mem_limit: 1g
+    logging: *logging
+    restart: unless-stopped
+
+  # Cấp và gia hạn chứng chỉ HTTPS. Lần đầu tạo chứng chỉ tự ký tạm để Nginx khởi động được.
+  certbot:
+    image: certbot/certbot:v5.8.0
+    entrypoint: ["/bin/sh", "/run.sh"]
+    environment:
+      DOMAIN: ${DOMAIN:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+    volumes:
+      - ./certbot/run.sh:/run.sh:ro
+      - certs:/certs
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    healthcheck:                         # "khỏe" khi đã có chứng chỉ (thật hoặc tạm) cho Nginx
+      test: ["CMD", "test", "-f", "/certs/fullchain.pem"]
+      interval: 5s
+      retries: 12
+    logging: *logging
+    restart: unless-stopped
+
+  # Cổng vào duy nhất: HTTPS, frontend đã build sẵn trong image, chuyển /api và SSE tới api.
+  nginx:
+    build: {context: .., dockerfile: docker/nginx/Dockerfile}
+    command: ["/bin/sh", "/etc/nginx/start.sh"]
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/start.sh:/etc/nginx/start.sh:ro
+      - certs:/etc/nginx/certs:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      certbot: {condition: service_healthy}
+    mem_limit: 256m
+    logging: *logging
+    restart: unless-stopped
+
+  # Cầu nối Xiaozhi (MCP endpoint, 09-xiaozhi-mcp). Chỉ chạy khi bật: docker compose --profile xiaozhi up -d
+  xiaozhi-bridge:
+    profiles: [xiaozhi]
+    build: ../xiaozhi-bridge
+    environment:
+      MCP_ENDPOINT: ${MCP_ENDPOINT:-}
+      API_BASE: http://api:8000/api/v1/assistant
+      ASSISTANT_TOKEN: ${ASSISTANT_TOKEN:-}
+    depends_on: [api]
+    mem_limit: 256m
+    logging: *logging
+    restart: unless-stopped
+
+volumes:
+  pg_data:        # dữ liệu PostgreSQL
+  certs:          # chứng chỉ Nginx đang dùng (tự ký tạm hoặc Let's Encrypt)
+  certbot_conf:   # dữ liệu của Certbot (/etc/letsencrypt)
+  certbot_www:    # webroot cho xác minh HTTP-01

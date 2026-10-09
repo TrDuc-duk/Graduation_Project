@@ -1,0 +1,3 @@
+# Dùng chung phiên bản với ml_xgb (ml_rf import phần dữ liệu từ ml_xgb/src)
+-r ../ml_xgb/requirements.txt
+joblib
