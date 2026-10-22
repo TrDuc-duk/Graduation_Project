@@ -384,6 +384,13 @@ Mỗi module theo cùng mẫu:
 | **M7** Xiaozhi | `assistant` + `xiaozhi-bridge` | Migration `0007`; `/assistant/*` | Hỏi qua loa ra đúng số liệu như API web |
 | **M8** Triển khai | — | Nginx + Certbot, sao lưu, test tải backend, test hệ thống với Gateway thật, test hiệu năng DB | Chạy trên VPS với thiết bị thật; có số đo mất mẫu và dung lượng |
 
+**Ghi chú khi code M0–M1 (15/10/2026, xem nhật ký quyết định ở README):**
+- Không dùng import-linter, mypy strict; rate limit chỉ backend `memory` (thư viện `limits`).
+- M1 chưa xếp hàng tính lại giờ: `hourly_recompute_queue` tạo ở `0004` (M2); chỗ cần enqueue đánh dấu `TODO(M2)`.
+- 5 endpoint firmware (kể cả `/provision/*`) nằm trong `ingest/router.py`, vì provisioning cũng ghi `ingest_batches` (của `telemetry`); nghiệp vụ provisioning vẫn ở `devices/service.py`.
+- Job `interval_stats` nằm ở `ingest/jobs.py` (đọc `measurements`/`ingest_batches` của `telemetry`), ghi kết quả qua `devices.service.set_interval_stats`.
+- `audit_logs` cho provisioning chờ module `audit` (M4).
+
 **Việc làm song song** (một người làm mỗi lần một việc thì theo đúng thứ tự trên):
 - `weather`, `notify` (phần Telegram) và `mlruntime.adapter` (kèm sửa matplotlib) không phụ thuộc ai, làm được từ M0.
 - `auth` và `audit` làm được ngay sau M0.

@@ -398,7 +398,7 @@ CREATE TABLE measurements (
   pm25          double precision,                      -- R9
   pm10          double precision,
   co2           smallint,
-  tvoc          smallint,
+  tvoc          integer, -- CCS811: tối đa 32768 ppb (vượt smallint)
   temperature   double precision,
   humidity      double precision,
   battery_pct   smallint,

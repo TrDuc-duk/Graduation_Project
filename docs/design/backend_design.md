@@ -316,8 +316,8 @@ Admin duyệt (đặt tên, tọa độ, chuyển `active`) thì node hiện nga
 | Nhận diện heartbeat node | `pm25 = pm10 = temperature = humidity = co2 = tvoc = 0` (tất cả bằng 0, không phải `null`) → **heartbeat**: **không** tạo `measurements`; vẫn tính vào dãy `msg_id`. Cập nhật trạng thái node theo mục 6.4.1 | — |
 | `pm25`, `pm10` | `null` giữ `null`; ngoài `[0, 1000]` → `null` | bit 0 `PM_OUT_OF_RANGE` |
 | `pm10 < pm25` | Giữ nguyên giá trị (lúc train cũng không lọc) | bit 1 `PM10_LT_PM25` |
-| `co2` | `0`, `65535`, `< 400`, `> 8192` → `null`, kéo theo `tvoc = null` | bit 2 `GAS_NOT_READY` (khi = 0) / bit 3 `GAS_INVALID` |
-| `tvoc` | ngoài `[0, 1187]` → `null` | bit 3 |
+| `co2` | `0`, `65535`, `< 400`, `> 29206` → `null`, kéo theo `tvoc = null` | bit 2 `GAS_NOT_READY` (khi = 0) / bit 3 `GAS_INVALID` |
+| `tvoc` | ngoài `[0, 32768]` → `null` | bit 3 |
 | `temperature` | ngoài `[-40, 85]` → `null` | bit 4 `TH_OUT_OF_RANGE` |
 | `humidity` | ngoài `[0, 100]` → `null`; `> 95` giữ nguyên | bit 5 `HIGH_HUMIDITY` (PMS7003 đo cao khi ẩm) |
 | `battery` | ngoài `[0, 100]` → `null` | — |

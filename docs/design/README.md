@@ -13,6 +13,7 @@ Ký hiệu trạng thái: **Chưa bắt đầu** · **Nháp** (đang chờ chố
 | [database_design.md](database_design.md) | **Schema DB để code:** 32 bảng theo module, DDL đầy đủ, index và truy vấn chính, TimescaleDB, mã dùng chung, địa chỉ LoRa, dung lượng, migration, vai trò DB, kiểm thử schema | Đang dùng để code |
 | [backend_modules.md](backend_modules.md) | **Chia module để dev:** 18 module, bảng sở hữu, giao diện công khai, đồ thị phụ thuộc, cấu trúc thư mục, quy tắc code, thứ tự phát triển và việc đầu tiên của M0 | Đang dùng để code |
 | [frontend_design.md](frontend_design.md) | Thiết kế frontend cơ bản: công nghệ, cấu trúc mã nguồn, route, tầng dữ liệu, i18n, quy ước hiển thị, lộ trình FE-M0–FE-M4 | Đang dùng để code; FE1–FE5 chờ chốt (mục 12) |
+| [detail_plan.md](detail_plan.md) | **Nhật ký triển khai:** những gì đã code ở M0, M1, dashboard demo, sửa sau thử nghiệm phần cứng; khác biệt so với thiết kế; việc còn mở | Cập nhật theo tiến độ |
 | [09-xiaozhi-mcp.md](09-xiaozhi-mcp.md) | Tích hợp Xiaozhi qua MCP endpoint: API trợ lý chỉ đọc, container `xiaozhi-bridge` | Đã chốt; X6 thử khi code |
 | 10 — Visualization | Thiết kế hình ảnh: bố cục, màu, kiểu biểu đồ, bản đồ, hiệu ứng 3D | Chưa bắt đầu |
 
@@ -74,3 +75,13 @@ Ký hiệu trạng thái: **Chưa bắt đầu** · **Nháp** (đang chờ chố
 | 04/10/2026 | R29 | Đầu vào dự báo: 184 feature giữ lâu dài; dòng giờ đã dùng giữ 90 ngày | backend_design §8.4, database_design §5.5 |
 | 04/10/2026 | R23 | Dự báo cũ: hiện bản thành công gần nhất ≤ 6 giờ với `status: stale`, chỉ các mốc tương lai; quá 6 giờ thì ẩn số, hiện lý do | backend_design §11.5 |
 | 04/10/2026 | R16–R30 | Sửa thiết kế theo `PLAN_REVIEW.md` đợt 2: chạy bù dùng thời điểm phát hành giả lập, outbox tuần tự theo node + mốc đã xử lý, cách ly trạng thái node, rate limit theo Gateway, as-of theo `trusted_at`/`superseded_at`, lần chạy/lần thử dự báo, `msg_id` modulo và học chu kỳ, `nginx.conf` riêng, coverage, Telegram ít nhất một lần, điều kiện xóa hẳn theo `first_data_at` | backend_design §22.2 |
+| 15/10/2026 | — | Code M0–M1 ở mức **đủ nghiệp vụ, gọn hạ tầng**: bỏ import-linter và mypy strict; rate limit chỉ dùng bộ nhớ (`limits`) | backend_modules §6 |
+| 15/10/2026 | — | `hourly_recompute_queue` để ở `0004` (M2); M1 chưa xếp hàng tính lại giờ (đánh dấu `TODO(M2)`) | database_design §11 |
+| 15/10/2026 | — | CI tối thiểu bằng GitHub Actions: ruff → migration hai chiều → pytest trên `timescaledb-ha` | backend_modules §6 |
+| 15/10/2026 | — | `payload_hash` băm giá trị đã chuẩn hóa: số làm tròn 1 chữ số thập phân, null → `null` (70 và 70.0 như nhau) | backend_design §6.5 |
+| 15/10/2026 | — | Dùng thư viện: `tenacity` (thử lại transaction), `limits` (rate limit), APScheduler (job nền); giữ lớp `Clock` | backend_modules §5 |
+| 15/10/2026 | — | Chi tiết cổng thiết bị chưa ghi trong thiết kế lấy theo datn-main: heartbeat 200 `{"success": true, "message": "Heartbeat OK"}`; thiếu `provision_key` 401, sai 403 | backend_design §6.1 |
+| 15/10/2026 | — | Mỗi module tách `repository.py` (SQL) khỏi `service.py` | backend_modules §1 |
+| 15/10/2026 | — | Job `interval_stats` làm ngay ở M1 | backend_design §6.6.5 |
+| 16/10/2026 | — | Dashboard demo cảm biến (`frontend/`): React + Vite + TS + ECharts, giao diện sáng; lấy dữ liệu bằng `fetch` + hook polling 10 giây (chưa chốt FE1, chưa có SSE) | frontend_design |
+| 16/10/2026 | — | API chỉ đọc `/api/v1/dev/*` (xem cả node pending) chỉ gắn khi `ENABLE_DEV_ENDPOINTS=true`, chỉ bật trong `docker-compose.dev.yml` | backend_modules |
