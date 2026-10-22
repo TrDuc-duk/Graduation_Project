@@ -13,8 +13,10 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import { fetchNodes, fetchReadings } from "@/api/dev";
 import type { NodeInfo, NodeReadings, RangeHours, Reading } from "@/api/types";
-import { AqiHero } from "@/components/aqi/AqiHero";
+import { AqiCard } from "@/components/aqi/AqiCard";
 import { AqiScale } from "@/components/aqi/AqiScale";
+import { HealthAdvice } from "@/components/aqi/HealthAdvice";
+import { WhoBand } from "@/components/aqi/WhoBand";
 import { type ChartSeries, SeriesChart } from "@/components/charts/SeriesChart";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatusBanner } from "@/components/common/StatusBanner";
@@ -48,7 +50,10 @@ interface DashboardData {
   detail: NodeReadings | null;
 }
 
-/** Trang Tổng quan: AQI nổi bật, thông tin thiết bị, thẻ thông số và biểu đồ của node đang chọn; làm mới mỗi 10 giây. */
+/**
+ * Trang Tổng quan kiểu IQAir: phần đầu có thẻ AQI theo màu US EPA, thẻ thông số và thiết bị, so sánh WHO,
+ * khuyến nghị sức khỏe, thang AQI và biểu đồ của node đang chọn; làm mới mỗi 10 giây.
+ */
 export function SensorDashboard() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hours, setHours] = useState<RangeHours>(1);
@@ -108,97 +113,110 @@ export function SensorDashboard() {
 
   const { node, latest, units } = detail;
   const stale = Boolean(latest && node.freshness.is_stale);
+  const level = aqiLevel(latest?.aqi_instant);
   const gasNote = latest && latest.co2 === null && latest.qc_flags & GAS_NOT_READY ? "CCS811 đang khởi động" : undefined;
 
   return (
-    <>
-      <PageHeader
-        eyebrow={`Tổng quan · ${node.station_code}`}
-        title={`Chất lượng không khí tại ${node.name}`}
-        subtitle={
-          <>
-            Chỉ số AQI Mỹ và các thông số đo của node {node.device_code}
+    <main className="overview">
+      <section className="ov-hero" style={{ "--lvl-soft": level?.soft ?? "var(--surface-muted)" } as React.CSSProperties}>
+        <div className="ov-hero__text">
+          <p className="ov-hero__crumbs">
+            Trạm quan trắc / {node.station_code} / <strong>{node.device_code}</strong>
+          </p>
+          <h1>Chất lượng không khí tại {node.name}</h1>
+          <p className="ov-hero__sub">
+            Chỉ số AQI Mỹ và các thông số đo
             {latest && ` · số đo mới nhất ${formatDateTime(node.freshness.last_received_at)}`}
-          </>
-        }
-        actions={refreshControl}
-      />
-
-      <main className="overview">
-        {data.nodes.length > 1 && (
-          <label className="field field--inline">
-            <span>Node</span>
-            <select value={node.id} onChange={(e) => setSelectedId(Number(e.target.value))}>
-              {data.nodes.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.device_code} · {n.station_code}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <Banners detail={detail} error={Boolean(error)} lastSuccessAt={lastSuccessAt} />
-
-        <div className="overview__top">
-          <AqiHero latest={latest} units={units} stale={stale} />
-          <DevicePanel node={node} latest={latest} />
+          </p>
+          <div className="ov-hero__actions">{refreshControl}</div>
         </div>
+        <AqiCard latest={latest} units={units} stale={stale} />
+      </section>
 
-        <AqiScale current={aqiLevel(latest?.aqi_instant)} />
+      {data.nodes.length > 1 && (
+        <label className="field field--inline">
+          <span>Node</span>
+          <select value={node.id} onChange={(e) => setSelectedId(Number(e.target.value))}>
+            {data.nodes.map((n) => (
+              <option key={n.id} value={n.id}>
+                {n.device_code} · {n.station_code}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
-        <section className="section" aria-labelledby="metrics-title">
-          <header className="section__head">
-            <h2 id="metrics-title">Các thông số đo</h2>
-            <p className="section__sub">Giá trị của số đo mới nhất · "—" là cảm biến không có số đo hợp lệ</p>
-          </header>
+      <Banners detail={detail} error={Boolean(error)} lastSuccessAt={lastSuccessAt} />
+
+      <div className="ov-grid">
+        <section className="card" aria-labelledby="metrics-title">
+          <h2 id="metrics-title" className="card__title">
+            Các thông số đo
+          </h2>
+          <p className="card__sub">Số đo mới nhất · "—" là cảm biến không có số đo hợp lệ</p>
           <div className="metrics">
-            <MetricCard label="PM2.5" value={latest?.pm25} unit={units.pm25} icon={CloudFog} hint="Bụi mịn" />
-            <MetricCard label="PM10" value={latest?.pm10} unit={units.pm10} icon={Cloud} hint="Bụi thô" />
-            <MetricCard label="eCO₂" value={latest?.co2} unit={units.co2} digits={0} icon={Wind} hint={gasNote ?? "CO₂ tương đương"} />
-            <MetricCard label="TVOC" value={latest?.tvoc} unit={units.tvoc} digits={0} icon={Activity} hint={gasNote ?? "Hợp chất hữu cơ bay hơi"} />
-            <MetricCard label="Nhiệt độ" value={latest?.temperature} unit={units.temperature} icon={Thermometer} />
-            <MetricCard label="Độ ẩm" value={latest?.humidity} unit={units.humidity} icon={Droplets} />
+            <MetricCard label="PM2.5" value={latest?.pm25} unit={units.pm25} icon={CloudFog} hint="Hạt mịn (≤ 2,5 µm)" />
+            <MetricCard label="PM10" value={latest?.pm10} unit={units.pm10} icon={Cloud} hint="Hạt lớn (≤ 10 µm)" />
+            <MetricCard label="Nhiệt độ" value={latest?.temperature} unit={units.temperature} icon={Thermometer} hint="Không khí" />
+            <MetricCard label="Độ ẩm" value={latest?.humidity} unit={units.humidity} icon={Droplets} hint="Độ ẩm tương đối" />
+          </div>
+          <div className="metrics metrics--minor">
+            <MetricCard minor label="eCO₂" value={latest?.co2} unit={units.co2} digits={0} icon={Wind} hint={gasNote ?? "CO₂ tương đương"} />
+            <MetricCard minor label="TVOC" value={latest?.tvoc} unit={units.tvoc} digits={0} icon={Activity} hint={gasNote ?? "Hợp chất hữu cơ bay hơi"} />
           </div>
         </section>
+        <DevicePanel node={node} latest={latest} />
+      </div>
 
-        {charts && (
-          <section className="section" aria-labelledby="charts-title">
-            <header className="section__head section__head--row">
-              <div>
-                <h2 id="charts-title">Biến động theo thời gian</h2>
-                <p className="section__sub">
-                  {detail.readings.length.toLocaleString("vi-VN")} số đo trong {hours} giờ qua
-                  {detail.truncated && " (đã giới hạn số điểm)"}
-                </p>
-              </div>
-              <div className="segmented" role="group" aria-label="Khoảng thời gian">
-                {RANGES.map((h) => (
-                  <button key={h} type="button" aria-pressed={hours === h} onClick={() => setHours(h)}>
-                    {h} giờ
-                  </button>
-                ))}
-              </div>
-            </header>
-            <div className="charts">
-              <ChartCard title="Bụi mịn PM2.5 / PM10" wide>
-                <SeriesChart title="Bụi mịn" series={charts.pm} emptyText={`Chưa có số đo PM trong ${hours} giờ qua`} />
-              </ChartCard>
-              <ChartCard title="Khí: eCO₂ và TVOC">
-                <SeriesChart title="Khí" series={charts.gas} emptyText={`Chưa có số đo khí hợp lệ trong ${hours} giờ qua`} />
-              </ChartCard>
-              <ChartCard title="Nhiệt độ và độ ẩm">
-                <SeriesChart
-                  title="Nhiệt độ và độ ẩm"
-                  series={charts.climate}
-                  emptyText={`Chưa có số đo nhiệt độ/độ ẩm trong ${hours} giờ qua`}
-                />
-              </ChartCard>
+      <WhoBand pm25={latest?.pm25} />
+
+      <div className="ov-grid ov-grid--even">
+        <HealthAdvice level={level} stale={stale} />
+        <section className="card" aria-labelledby="scale-title">
+          <h2 id="scale-title" className="card__title">
+            Thang AQI Mỹ
+          </h2>
+          <p className="card__sub">Màu theo 6 mức của US EPA</p>
+          <AqiScale current={level} vertical />
+        </section>
+      </div>
+
+      {charts && (
+        <section className="section" aria-labelledby="charts-title">
+          <header className="section__head section__head--row">
+            <div>
+              <h2 id="charts-title">Biến động theo thời gian</h2>
+              <p className="section__sub">
+                {detail.readings.length.toLocaleString("vi-VN")} số đo trong {hours} giờ qua
+                {detail.truncated && " (đã giới hạn số điểm)"}
+              </p>
             </div>
-          </section>
-        )}
-      </main>
-    </>
+            <div className="segmented" role="group" aria-label="Khoảng thời gian">
+              {RANGES.map((h) => (
+                <button key={h} type="button" aria-pressed={hours === h} onClick={() => setHours(h)}>
+                  {h} giờ
+                </button>
+              ))}
+            </div>
+          </header>
+          <div className="charts">
+            <ChartCard title="Bụi mịn PM2.5 / PM10" wide>
+              <SeriesChart title="Bụi mịn" series={charts.pm} emptyText={`Chưa có số đo PM trong ${hours} giờ qua`} />
+            </ChartCard>
+            <ChartCard title="Khí: eCO₂ và TVOC">
+              <SeriesChart title="Khí" series={charts.gas} emptyText={`Chưa có số đo khí hợp lệ trong ${hours} giờ qua`} />
+            </ChartCard>
+            <ChartCard title="Nhiệt độ và độ ẩm">
+              <SeriesChart
+                title="Nhiệt độ và độ ẩm"
+                series={charts.climate}
+                emptyText={`Chưa có số đo nhiệt độ/độ ẩm trong ${hours} giờ qua`}
+              />
+            </ChartCard>
+          </div>
+        </section>
+      )}
+    </main>
   );
 }
 
@@ -243,8 +261,8 @@ function DevicePanel({ node, latest }: { node: NodeInfo; latest: Reading | null 
   const fresh = latest && !node.freshness.is_stale;
   const battery = latest?.battery_pct ?? node.battery_pct;
   return (
-    <section className="device" aria-label="Thông tin thiết bị">
-      <h2 className="device__title">Thiết bị</h2>
+    <section className="card device" aria-label="Thông tin thiết bị">
+      <h2 className="card__title">Thiết bị</h2>
       <dl className="device__list">
         <div>
           <dt>Trạng thái cập nhật</dt>
@@ -312,12 +330,12 @@ function ChartCard({ title, children, wide }: { title: string; children: React.R
 function LoadingSkeleton() {
   return (
     <div className="overview" aria-busy="true" aria-label="Đang tải dữ liệu">
-      <div className="overview__top">
+      <div className="ov-grid">
         <div className="skeleton skeleton--hero" />
         <div className="skeleton skeleton--hero" />
       </div>
       <div className="metrics">
-        {Array.from({ length: 6 }, (_, i) => (
+        {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="skeleton skeleton--metric" />
         ))}
       </div>

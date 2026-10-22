@@ -1,9 +1,12 @@
 import { AQI_LEVELS, type AqiLevel } from "@/lib/aqi";
 
-/** Chú giải 6 mức AQI Mỹ; mức hiện tại được đánh dấu bằng viền và chữ "Hiện tại" (không chỉ dựa vào màu). */
-export function AqiScale({ current }: { current?: AqiLevel | null }) {
+/**
+ * Chú giải 6 mức AQI Mỹ; mức hiện tại được đánh dấu bằng viền và chữ "Hiện tại" (không chỉ dựa vào màu).
+ * `vertical`: xếp dọc trong một thẻ (trang Tổng quan); mặc định xếp ngang.
+ */
+export function AqiScale({ current, vertical }: { current?: AqiLevel | null; vertical?: boolean }) {
   return (
-    <ol className="aqi-scale" aria-label="Thang AQI Mỹ">
+    <ol className={`aqi-scale ${vertical ? "aqi-scale--vertical" : ""}`} aria-label="Thang AQI Mỹ">
       {AQI_LEVELS.map((level) => {
         const active = current?.key === level.key;
         return (

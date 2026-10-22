@@ -8,14 +8,15 @@ interface Props {
   digits?: number;
   icon: LucideIcon;
   hint?: string; // ghi chú nhỏ dưới giá trị (vd. nguồn dữ liệu, lý do thiếu)
+  minor?: boolean; // thẻ phụ, nhỏ hơn (eCO₂, TVOC)
 }
 
-/** Thẻ một thông số: tên, giá trị kèm đơn vị. Giá trị null hiển thị "—" và không kèm đơn vị. */
-export function MetricCard({ label, value, unit, digits = 1, icon: Icon, hint }: Props) {
+/** Ô một thông số: tên, giá trị kèm đơn vị. Giá trị null hiển thị "—" và không kèm đơn vị. */
+export function MetricCard({ label, value, unit, digits = 1, icon: Icon, hint, minor }: Props) {
   const text = formatNumber(value, digits);
   const missing = text === EMPTY;
   return (
-    <article className={`metric ${missing ? "metric--missing" : ""}`}>
+    <article className={`metric ${missing ? "metric--missing" : ""} ${minor ? "metric--minor" : ""}`}>
       <header className="metric__head">
         <Icon size={18} aria-hidden="true" className="metric__icon" />
         <h3 className="metric__label">{label}</h3>
