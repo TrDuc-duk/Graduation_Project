@@ -220,3 +220,12 @@ Mỗi mục một commit. Kiểm tra giao diện bằng Chrome headless (CDP): t
 - Lỗi `{"ok": false, "code", "message_vi", ...}`: `UNAUTHORIZED` 401, `STATION_NOT_FOUND` 404 (kèm danh sách trạm), `STATION_AMBIGUOUS` 409 (kèm ứng viên), `DEFAULT_STATION_NOT_SET` 404, `NO_DATA` 404, `INVALID_PARAMS` 422, `BACKEND_UNAVAILABLE` 503 (lỗi DB).
 - Mỗi lần gọi ghi `assistant_calls` (tool, tham số, trạm, kết quả, ms) và một dòng log; không ghi token.
 - Thử trên dữ liệu thật (uvicorn tạm, token ngẫu nhiên): NODE_076 còn `pending` nên chưa có trạm công khai; các lỗi trả đúng dạng. Đã xóa 6 dòng nhật ký của lần thử.
+
+### 10.7. A3 – `xiaozhi-bridge`
+- `mcp_pipe.py`: MCP server tối giản chỉ có tools, theo cách `registerTool` của `docs/xiaozhi.h`. Bridge chủ động mở WebSocket tới `MCP_ENDPOINT`, xử lý `initialize`/`tools/list`/`tools/call`/`ping`, tự nối lại (1 → 600 giây). Không dùng MCP SDK; thư viện ngoài duy nhất là `websockets==16.1.1`. Chỉ ghi host của endpoint vào log (URL chứa token).
+- `aqi_tools.py`: 4 tool (`list_stations`, `get_current_air_quality`, `get_history_summary`, `get_forecast`), mô tả tiếng Việt nêu rõ khi nào gọi, đọc `summary_vi`, không bịa số. Gọi API bằng `urllib`, timeout 5 giây. Lỗi backend chuyển tiếp nguyên; không gọi được thì trả `BACKEND_UNAVAILABLE`. Không ghi token.
+- Chạy: `python mcp_pipe.py aqi_tools.py` (giữ đúng CMD của Dockerfile). Docker Compose dev có service `xiaozhi-bridge` (profile `xiaozhi`). Hướng dẫn ở `xiaozhi-bridge/README.md`.
+- Test (`python -m unittest discover -s tests`): 11 test (giao thức MCP, URL/header, mã hóa tên trạm, chuyển tiếp lỗi, timeout, backend tắt, thiếu token, không lộ token, vòng WebSocket với Xiaozhi giả). CI chạy thêm bước này.
+- Thử đầu-cuối bridge → FastAPI thật trên DB `aqi_test` (8 batch qua ingest): 3 câu hỏi mẫu trả đúng số liệu; sai trạm, sai tham số, sai token, backend tắt đều trả lỗi đúng dạng.
+- **Chưa kiểm chứng với Xiaozhi thật**: chưa có `MCP_ENDPOINT`. Image bridge đã build được và dừng có thông báo khi thiếu cấu hình.
+- API trợ lý trả thời điểm làm tròn tới giây.

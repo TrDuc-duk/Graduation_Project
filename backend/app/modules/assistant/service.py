@@ -290,5 +290,5 @@ def _ref(node: Node) -> StationRef:
 
 
 def _local(t: datetime) -> datetime:
-    """Thời điểm trả về API: giờ Việt Nam (+07:00)."""
-    return timeutil.to_local(t)
+    """Thời điểm trả về API: giờ Việt Nam (+07:00), làm tròn tới giây cho chatbot dễ đọc."""
+    return timeutil.to_local(t).replace(microsecond=0)

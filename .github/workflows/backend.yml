@@ -3,9 +3,9 @@ name: backend
 
 on:
   push:
-    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", "xiaozhi-bridge/**", "frontend/src/lib/aqi.ts", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", "xiaozhi-bridge/**", "frontend/src/lib/aqi.ts", ".github/workflows/backend.yml"]
 
 jobs:
   test:
@@ -48,3 +48,7 @@ jobs:
 
       - name: Tests
         run: pytest -q
+
+      - name: Bridge tests (xiaozhi-bridge, chỉ thư viện chuẩn)
+        working-directory: xiaozhi-bridge
+        run: python -m unittest discover -s tests

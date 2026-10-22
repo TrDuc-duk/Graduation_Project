@@ -41,5 +41,12 @@ services:
     mem_limit: 256m
     restart: unless-stopped
 
+  # Cầu nối Xiaozhi (09-xiaozhi-mcp). Chỉ chạy khi bật: docker compose -f docker-compose.dev.yml --profile xiaozhi up -d
+  # Cần MCP_ENDPOINT (console Xiaozhi) và ASSISTANT_TOKEN (cùng giá trị cho api và bridge) trong docker/.env.
+  xiaozhi-bridge:
+    extends: {file: docker-compose.yml, service: xiaozhi-bridge}
+    depends_on:
+      api: {condition: service_healthy}
+
 volumes:
   pg_data:

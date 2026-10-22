@@ -1,0 +1,2 @@
+# Thư viện ngoài duy nhất của bridge: WebSocket tới MCP endpoint Xiaozhi. HTTP tới backend dùng urllib.
+websockets==16.1.1

@@ -90,3 +90,4 @@ Ký hiệu trạng thái: **Chưa bắt đầu** · **Nháp** (đang chờ chố
 | 23/10/2026 | — | Đặt tọa độ/duyệt trạm/trạm mặc định tạm bằng `scripts/set_station.py` (thay Admin M4) | detail_plan §10.3 |
 | 23/10/2026 | — | Lịch sử 7/30 ngày: API dev trả trung bình theo giờ (bỏ cờ `EXCLUDE_MASK`), AQI giờ tính từ PM trung bình giờ, cho tới khi có `node_hourly` (M2) | detail_plan §10.4 |
 | 23/10/2026 | — | API trợ lý làm trên dữ liệu M1: AQI tức thời (AQI giờ null), dự báo `unavailable`; xu hướng = 1/3 cuối so với 1/3 đầu (chênh ≥ 10, ≥ 6 mẫu); không giới hạn tần suất; tạo `assistant_calls` ngay (migration `0005`) | detail_plan §10.6 |
+| 23/10/2026 | — | `xiaozhi-bridge` không dùng MCP SDK: tự xử lý các lệnh MCP cần thiết, chỉ phụ thuộc `websockets`; HTTP bằng `urllib` (giữ ít thư viện ngoài) | detail_plan §10.7 |
