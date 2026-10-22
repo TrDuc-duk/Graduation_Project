@@ -9,39 +9,52 @@ const NAV_ITEMS = [
   { to: "/history", label: "Lịch sử", icon: BarChart3 },
 ];
 
-interface Indicator {
+interface Pill {
+  to: string | null; // tab đang nằm dưới pill (null = chưa đo được)
+  onActive: boolean; // pill đang nằm ở tab đang chọn (nền xanh lá) hay tab đang hover (nền tối)
   left: number;
+  top: number;
   width: number;
-  visible: boolean;
+  height: number;
 }
 
 /**
- * Thanh điều hướng trên cùng kiểu IQAir: dính khi cuộn (thêm bóng nhẹ), gạch chân trượt tới mục đang
- * hover/focus rồi trở về mục đang chọn; điện thoại thu menu vào nút ☰, đóng bằng Esc hoặc khi đổi trang.
+ * Thanh điều hướng trên cùng kiểu IQAir: dính khi cuộn (thêm bóng nhẹ). Một pill trượt tới tab đang
+ * hover/focus (nền tối, chữ trắng) rồi trở về tab đang chọn (nền xanh lá nhạt); điện thoại thu menu vào nút ☰,
+ * đóng khi chạm ra ngoài, nhấn Esc hoặc đổi trang.
  */
 export function Topbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [indicator, setIndicator] = useState<Indicator>({ left: 0, width: 0, visible: false });
+  const [pill, setPill] = useState<Pill>({ to: null, onActive: false, left: 0, top: 0, width: 0, height: 0 });
   const { pathname } = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
-  // Đặt gạch chân dưới một mục menu (hoặc mục đang chọn khi không truyền)
-  const moveIndicator = useCallback((target?: HTMLElement | null) => {
+  // Đặt pill dưới một tab (hoặc tab đang chọn khi không truyền)
+  const movePill = useCallback((target?: HTMLElement | null) => {
     const el = target ?? navRef.current?.querySelector<HTMLElement>(".appbar__link.active");
-    setIndicator(el ? { left: el.offsetLeft, width: el.offsetWidth, visible: true } : (i) => ({ ...i, visible: false }));
+    if (!el) return setPill((p) => ({ ...p, to: null }));
+    setPill({
+      to: el.getAttribute("href"),
+      onActive: el.classList.contains("active"),
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+    });
   }, []);
 
-  // Đổi trang: đóng menu điện thoại, gạch chân về mục mới; đổi kích thước cửa sổ: tính lại vị trí
+  // Đổi trang: đóng menu điện thoại, pill về tab mới; đổi kích thước cửa sổ: tính lại vị trí
   useLayoutEffect(() => {
     setOpen(false);
-    moveIndicator();
-    const onResize = () => moveIndicator();
+    movePill();
+    const onResize = () => movePill();
     void document.fonts?.ready.then(onResize); // font tải xong thì chữ đổi rộng, đo lại
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [pathname, moveIndicator]);
+  }, [pathname, movePill]);
 
   // Cuộn trang: thêm bóng nhẹ dưới topbar
   useEffect(() => {
@@ -51,7 +64,7 @@ export function Topbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Menu điện thoại đang mở: Esc để đóng và trả focus về nút ☰
+  // Menu điện thoại đang mở: Esc đóng và trả focus về nút ☰; chạm/bấm ngoài topbar cũng đóng
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -60,12 +73,19 @@ export function Topbar() {
         toggleRef.current?.focus();
       }
     };
+    const onPointer = (e: PointerEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
   }, [open]);
 
   return (
-    <header className={`appbar ${scrolled ? "appbar--scrolled" : ""}`}>
+    <header ref={headerRef} className={`appbar ${scrolled ? "appbar--scrolled" : ""}`}>
       <div className="appbar__inner">
         <NavLink to="/" className="appbar__brand" aria-label="Giám sát Không khí — trang tổng quan">
           <span className="appbar__logo" aria-hidden="true">
@@ -93,33 +113,34 @@ export function Topbar() {
           id="main-nav"
           className={`appbar__nav ${open ? "appbar__nav--open" : ""}`}
           aria-label="Điều hướng chính"
-          onMouseLeave={() => moveIndicator()}
+          onMouseLeave={() => movePill()}
           onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget)) moveIndicator();
+            if (!e.currentTarget.contains(e.relatedTarget)) movePill();
           }}
         >
+          <span
+            className={`appbar__pill ${pill.onActive ? "appbar__pill--active" : ""}`}
+            aria-hidden="true"
+            style={{
+              width: pill.width,
+              height: pill.height,
+              transform: `translate(${pill.left}px, ${pill.top}px)`,
+              opacity: pill.to ? 1 : 0,
+            }}
+          />
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/"}
-              className="appbar__link"
-              onMouseEnter={(e) => moveIndicator(e.currentTarget)}
-              onFocus={(e) => moveIndicator(e.currentTarget)}
+              className={`appbar__link ${pill.to === to ? (pill.onActive ? "appbar__link--current" : "appbar__link--lit") : ""}`}
+              onMouseEnter={(e) => movePill(e.currentTarget)}
+              onFocus={(e) => movePill(e.currentTarget)}
             >
               <Icon size={18} aria-hidden="true" />
               {label}
             </NavLink>
           ))}
-          <span
-            className="appbar__indicator"
-            aria-hidden="true"
-            style={{
-              width: indicator.width,
-              transform: `translateX(${indicator.left}px)`,
-              opacity: indicator.visible ? 1 : 0,
-            }}
-          />
         </nav>
 
         <span className="appbar__env" title="Dữ liệu qua API dev, gồm cả thiết bị chưa duyệt">

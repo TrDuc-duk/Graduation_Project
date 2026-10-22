@@ -5,10 +5,14 @@
   --surface-muted: #f1f5f9;
   --text: #0f172a;
   --text-muted: #475569;
+  --ink: #111827;
   --border: #e2e8f0;
-  --primary: #1e40af;
-  --primary-hover: #1e3a8a;
-  --primary-soft: #dbeafe;
+  /* Màu chủ đạo xanh lá nhạt: dùng làm nền; chữ/viền trên nền trắng dùng bản đậm để đủ tương phản */
+  --primary: #4ade80;
+  --primary-hover: #22c55e;
+  --primary-soft: #dcfce7;
+  --primary-strong: #15803d;
+  --on-primary: #14532d;
   --ok: #15803d;
   --ok-soft: #dcfce7;
   --warn: #b45309;
@@ -68,7 +72,7 @@ select {
 }
 
 :focus-visible {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--primary-strong);
   outline-offset: 2px;
 }
 
@@ -118,7 +122,7 @@ select {
 }
 
 .appbar__brand strong {
-  color: var(--primary);
+  color: var(--primary-strong);
   font-weight: 700;
 }
 
@@ -129,58 +133,74 @@ select {
   height: 36px;
   border-radius: 10px;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .appbar__nav {
   position: relative;
   display: flex;
-  align-items: stretch;
-  align-self: stretch;
+  align-items: center;
   gap: var(--space-1);
   margin: 0 auto;
 }
 
+/* Tab dạng pill; tab nằm dưới pill tối (hover/focus/đang chọn) đổi chữ trắng */
 .appbar__link {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0 var(--space-4);
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
   color: #334155;
-  font-size: 1.02rem;
+  font-size: 1rem;
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.2s var(--ease);
-}
-
-.appbar__link:hover,
-.appbar__link:focus-visible {
-  color: var(--text);
+  white-space: nowrap;
+  transition: color 0.25s var(--ease);
 }
 
 .appbar__link.active {
-  color: var(--primary);
   font-weight: 600;
 }
 
-.appbar__link:focus-visible {
-  outline-offset: -6px;
-  border-radius: var(--radius-sm);
+.appbar__link--lit {
+  color: #fff;
 }
 
-/* Gạch chân trượt giữa các mục (vị trí, độ rộng do Topbar.tsx tính) */
-.appbar__indicator {
+.appbar__link--current {
+  color: var(--on-primary);
+}
+
+.appbar__link:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
+}
+
+/* Pill tối trượt giữa các tab (vị trí, kích thước do Topbar.tsx tính); fade + slide 250 ms */
+.appbar__pill {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--primary);
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 4px 12px rgb(17 24 39 / 0.18);
   pointer-events: none;
   transition:
-    transform 0.32s var(--ease),
-    width 0.32s var(--ease),
+    transform 0.25s var(--ease),
+    width 0.25s var(--ease),
+    height 0.25s var(--ease),
+    background-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
     opacity 0.2s ease;
+}
+
+/* Pill nằm ở tab đang chọn: nền xanh lá nhạt (màu chủ đạo) */
+.appbar__pill--active {
+  background: var(--primary);
+  box-shadow: 0 4px 12px rgb(34 197 94 / 0.25);
 }
 
 .appbar__env {
@@ -273,7 +293,7 @@ select {
 
 .btn--primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .btn--primary:hover:not(:disabled) {
@@ -334,7 +354,7 @@ select {
 
 .segmented button[aria-pressed="true"] {
   background: var(--primary-soft);
-  color: var(--primary);
+  color: var(--primary-strong);
 }
 
 /* ---------- trang Tổng quan ---------- */
@@ -657,7 +677,7 @@ select {
 }
 
 .metric__icon {
-  color: var(--primary);
+  color: var(--primary-strong);
 }
 
 .metric__label {
@@ -816,7 +836,7 @@ select {
   }
 
   .appbar__env,
-  .appbar__indicator {
+  .appbar__pill {
     display: none;
   }
 
@@ -826,7 +846,8 @@ select {
     right: 0;
     left: 0;
     flex-direction: column;
-    gap: 0;
+    align-items: stretch;
+    gap: var(--space-1);
     padding: var(--space-2) var(--space-4) var(--space-4);
     border-bottom: 1px solid var(--border);
     background: var(--surface);
@@ -850,13 +871,27 @@ select {
       visibility 0s;
   }
 
+  /* Không có pill trượt: mỗi tab tự đổi nền tối khi chạm/hover hoặc đang chọn */
   .appbar__link {
     min-height: 48px;
-    border-radius: var(--radius-sm);
+    transition:
+      background-color 0.25s var(--ease),
+      color 0.25s var(--ease);
+  }
+
+  .appbar__link--lit,
+  .appbar__link--current {
+    color: #334155;
+  }
+
+  .appbar__link:hover {
+    background: var(--ink);
+    color: #fff;
   }
 
   .appbar__link.active {
-    background: var(--primary-soft);
+    background: var(--primary);
+    color: var(--on-primary);
   }
 
   .charts {
