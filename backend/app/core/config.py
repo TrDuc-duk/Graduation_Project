@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     enable_api_docs: bool = False
     # Endpoint chỉ đọc cho dashboard demo (xem cả node pending). Chỉ bật ở môi trường dev
     enable_dev_endpoints: bool = False
+    # Token tĩnh quyền assistant:read cho xiaozhi-bridge; để trống thì không mở API trợ lý (09-xiaozhi-mcp)
+    assistant_token: str = ""
 
     @field_validator("gateway_secrets", mode="before")
     @classmethod

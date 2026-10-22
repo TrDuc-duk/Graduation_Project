@@ -210,3 +210,13 @@ Mỗi mục một commit. Kiểm tra giao diện bằng Chrome headless (CDP): t
   - `latest_trusted`: số đo hiện tại bỏ bản mang cờ `EXCLUDE_MASK`;
   - `summary`: trung bình/thấp nhất/cao nhất + xu hướng (1/3 thời gian cuối so với 1/3 đầu, chênh ≥ 10, cần ≥ 6 giá trị) cho AQI, PM2.5, PM10.
 - `settings_store.DEFAULTS` thêm `default_station_id: None`.
+
+### 10.6. A2 – API trợ lý `/api/v1/assistant/*`
+- Migration `0005_assistant` (thiết kế ghi `0007`, đổi số vì `0004` đã dùng): bảng `assistant_calls`. **Đã chạy trên DB dev** (chỉ thêm bảng trống). Job xóa sau 30 ngày chưa có.
+- Chỉ gắn khi đặt `ASSISTANT_TOKEN`; xác thực `Authorization: Bearer`, so sánh thời gian hằng; không giới hạn tần suất (quyết định 23/10). Nginx dev và production trả 404 cho `/api/v1/assistant/`.
+- Endpoint: `GET /stations`, `/stations/{ref}/current`, `/stations/{ref}/summary?hours=1..72` (mặc định 24), `/stations/{ref}/forecast?horizons=` (bội 3 trong 3–72, mặc định 3,6,12,24). `ref` = mã, tên (bỏ dấu) hoặc `default`.
+- Dữ liệu M1: `current` trả AQI tức thời (`aqi_kind: "instant"`, `hourly_aqi: null`); `summary` thống kê số đo tin cậy kèm xu hướng; `forecast` trả `status: "unavailable"`, `forecast: null` (chưa có mô hình chạy, không bịa số).
+- Mọi response có trạm, thời gian `+07:00`, đơn vị, `summary_vi`; null giữ null; dữ liệu cũ có cảnh báo và thời điểm cập nhật cuối; không có pin, Gateway, cấu hình.
+- Lỗi `{"ok": false, "code", "message_vi", ...}`: `UNAUTHORIZED` 401, `STATION_NOT_FOUND` 404 (kèm danh sách trạm), `STATION_AMBIGUOUS` 409 (kèm ứng viên), `DEFAULT_STATION_NOT_SET` 404, `NO_DATA` 404, `INVALID_PARAMS` 422, `BACKEND_UNAVAILABLE` 503 (lỗi DB).
+- Mỗi lần gọi ghi `assistant_calls` (tool, tham số, trạm, kết quả, ms) và một dòng log; không ghi token.
+- Thử trên dữ liệu thật (uvicorn tạm, token ngẫu nhiên): NODE_076 còn `pending` nên chưa có trạm công khai; các lỗi trả đúng dạng. Đã xóa 6 dòng nhật ký của lần thử.

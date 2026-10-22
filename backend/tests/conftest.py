@@ -16,6 +16,7 @@ from sqlalchemy import create_engine, text
 
 os.environ.setdefault("SCHEDULER_ENABLED", "false")  # test tự gọi job, không để scheduler chạy
 os.environ.setdefault("ENABLE_DEV_ENDPOINTS", "true")  # test cả API dev
+os.environ["ASSISTANT_TOKEN"] = "test-assistant-token"  # bật API trợ lý với token cố định của test
 
 from app.core import ratelimit, settings_store, timeutil  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
