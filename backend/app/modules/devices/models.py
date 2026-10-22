@@ -58,10 +58,12 @@ class Node(Base):
     lora_addr: Mapped[int] = mapped_column(SmallInteger)
     device_code: Mapped[str] = mapped_column(Text, Computed("'NODE_' || lpad(lora_addr::text, 3, '0')"))
     name: Mapped[str] = mapped_column(Text)
+    district: Mapped[str | None] = mapped_column(Text)
     geom: Mapped[object | None] = mapped_column(Geometry("POINT", srid=4326))
     home_gateway_id: Mapped[str | None] = mapped_column(Text, ForeignKey("gateways.id"))
     status: Mapped[str] = mapped_column(Text, **DB_DEFAULT)
     registered_via: Mapped[str] = mapped_column(Text)
+    is_public: Mapped[bool] = mapped_column(**DB_DEFAULT)
     expected_interval_s: Mapped[int | None]
     interval_locked: Mapped[bool] = mapped_column(**DB_DEFAULT)
     observed_interval_s: Mapped[int | None]
@@ -75,6 +77,7 @@ class Node(Base):
     lost_packets_24h: Mapped[int | None]
     last_gateway_id: Mapped[str | None] = mapped_column(Text)
     battery_pct: Mapped[int | None] = mapped_column(SmallInteger)
+    approved_at: Mapped[datetime | None]
     first_data_at: Mapped[datetime | None]
     retired_at: Mapped[datetime | None]
 

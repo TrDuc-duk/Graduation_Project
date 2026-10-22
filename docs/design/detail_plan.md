@@ -173,3 +173,25 @@ Chi tiết và bằng chứng ở [report-tuan-6.md §3](../report-tuan-6.md) v�
 | Migration | `docker compose -f docker/docker-compose.dev.yml run --rm api alembic upgrade head` |
 | Node.js | Node 22 LTS cài ở `~/.local/node-v22` (không dùng sudo) |
 | Bí mật | `docker/.env`, `backend/.env`: không commit; `.dockerignore` bỏ `**/.env` |
+
+---
+
+## 10. Giao diện kiểu IQAir và API trợ lý (23/10/2026, theo `PLAN_NOW.md`)
+
+Mỗi mục một commit. Kiểm tra giao diện bằng Chrome headless (CDP): tương tác, ảnh desktop 1366 px và mobile 390 px.
+
+### 10.1. F1 – Topbar
+- Pill trượt tới tab đang hover/focus (nền tối, chữ trắng), về tab đang chọn (nền xanh lá nhạt); không có dropdown/overlay.
+- Menu điện thoại: mờ dần + trượt 250 ms; đóng khi chạm ra ngoài, Esc (trả focus về ☰) hoặc đổi trang.
+- Màu chủ đạo xanh lá nhạt `#4ade80` làm nền; chữ/viền trên nền trắng dùng `#15803d`, chữ trên nền xanh dùng `#14532d` (đủ tương phản).
+
+### 10.2. F2 – Tổng quan
+- Phần đầu trang có nền loang màu theo mức AQI; thẻ AQI gọn (ô số, nhãn, mặt biểu cảm, PM2.5, nhiệt độ, độ ẩm, giờ đo).
+- Thẻ thông số (PM2.5, PM10, nhiệt độ, độ ẩm; eCO₂, TVOC nhỏ hơn), thẻ thiết bị, dải so sánh PM2.5 với hướng dẫn năm của WHO (5 µg/m³), khuyến nghị sức khỏe theo mức (nội dung soạn sẵn theo US EPA), thang AQI dọc, biểu đồ.
+- Khung nội dung 1056 px trên nền trắng, cỡ chữ gốc 15 px. Node đang xem nằm trên URL (`?node=`).
+
+### 10.3. F3 – Bản đồ
+- Leaflet 1.9.4 (thư viện bản đồ phổ biến, không dùng react-leaflet). Marker tròn màu AQI, viền đứt khi dữ liệu cũ; popup nội dung React qua portal (AQI, PM2.5, PM10, nhiệt độ, giờ đo, liên kết Tổng quan/Lịch sử); nút toàn màn hình, về các trạm, zoom; chú giải 6 mức; danh sách trạm xếp theo AQI.
+- Tile: `tile.openstreetmap.org` bị DNS mạng dev trả về `127.0.0.1`; CARTO đã bắt buộc API key. Dùng tile OSM kiểu HOT của OSM France (không cần key), đổi được bằng `VITE_MAP_TILE_URL`.
+- API dev: `NodeOut` thêm `district`, `latitude`, `longitude`, `latest` (chỉ bổ sung trường).
+- `scripts/set_station.py` (chạy `python -m scripts.set_station` trong `backend/`): đặt tên, khu vực, tọa độ; `--activate` duyệt trạm pending; `--default` đặt `app_settings.default_station_id`. Chỉ sửa `nodes`, `app_settings`; không đụng số đo. **Chưa chạy trên DB thật**: cần tọa độ thật của NODE_076.

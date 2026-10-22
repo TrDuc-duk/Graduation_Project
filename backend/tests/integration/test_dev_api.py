@@ -25,6 +25,7 @@ async def test_lists_pending_node_with_gateway_and_freshness(client, db, clock):
     [node] = (await client.get(URL)).json()
     assert (node["device_code"], node["status"], node["station_code"]) == ("NODE_076", "pending", "ST001")
     assert node["gateway"]["id"] == "GW_001" and node["gateway"]["online"] is True
+    assert (node["latest"]["pm25"], node["latest"]["aqi_instant"]) == (70.0, 158)
     assert node["freshness"] == {
         "last_received_at": "2026-10-15T07:00:00Z",
         "age_s": 20,

@@ -16,9 +16,11 @@ MAX_POINTS = 20_000
 
 
 async def list_nodes(session: AsyncSession) -> list[NodeOut]:
-    """Mọi node chưa ngưng hoạt động (kể cả pending) kèm Gateway và độ mới dữ liệu."""
+    """Mọi node chưa ngưng hoạt động (kể cả pending) kèm vị trí, Gateway và độ mới dữ liệu."""
     now = timeutil.now()
-    return [await _node_out(session, node, now) for node in await devices.list_nodes(session)]
+    nodes = await devices.list_nodes(session)
+    positions = await devices.node_positions(session, [n.id for n in nodes])
+    return [await _node_out(session, node, now, position=positions.get(node.id)) for node in nodes]
 
 
 async def node_readings(session: AsyncSession, node_id: int, hours: int) -> NodeReadings | None:
@@ -30,8 +32,9 @@ async def node_readings(session: AsyncSession, node_id: int, hours: int) -> Node
     since = now - timedelta(hours=hours)
     rows = await telemetry.readings(session, node.id, since, MAX_POINTS + 1)
     latest = await telemetry.latest_reading(session, node.id)
+    position = (await devices.node_positions(session, [node.id])).get(node.id)
     return NodeReadings(
-        node=await _node_out(session, node, now, latest),
+        node=await _node_out(session, node, now, latest, position),
         hours=hours,
         since=since,
         server_time=now,
@@ -42,8 +45,14 @@ async def node_readings(session: AsyncSession, node_id: int, hours: int) -> Node
     )
 
 
-async def _node_out(session: AsyncSession, node: Node, now: datetime, latest: Measurement | None = None) -> NodeOut:
-    """Thông tin node: Gateway gần nhất (hoặc Gateway nhà) và độ mới theo số đo nhận gần nhất."""
+async def _node_out(
+    session: AsyncSession,
+    node: Node,
+    now: datetime,
+    latest: Measurement | None = None,
+    position: tuple[float, float] | None = None,
+) -> NodeOut:
+    """Thông tin node: vị trí (nếu có), Gateway gần nhất (hoặc Gateway nhà), số đo mới nhất và độ mới dữ liệu."""
     latest = latest or await telemetry.latest_reading(session, node.id)
     gateway_id = (latest.gateway_id if latest else None) or node.last_gateway_id or node.home_gateway_id
     gateway = await devices.get_gateway(session, gateway_id) if gateway_id else None
@@ -52,6 +61,9 @@ async def _node_out(session: AsyncSession, node: Node, now: datetime, latest: Me
         station_code=node.station_code,
         device_code=node.device_code,
         name=node.name,
+        district=node.district,
+        latitude=position[0] if position else None,
+        longitude=position[1] if position else None,
         status=node.status,
         connectivity=node.connectivity,
         battery_pct=node.battery_pct,
@@ -60,6 +72,7 @@ async def _node_out(session: AsyncSession, node: Node, now: datetime, latest: Me
         last_measurement_at=node.last_measurement_at,
         gateway=await _gateway_out(gateway, now) if gateway else None,
         freshness=await _freshness(node, latest, now),
+        latest=_reading(latest) if latest else None,
     )
 
 

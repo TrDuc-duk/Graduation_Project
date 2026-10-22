@@ -85,3 +85,6 @@ Ký hiệu trạng thái: **Chưa bắt đầu** · **Nháp** (đang chờ chố
 | 15/10/2026 | — | Job `interval_stats` làm ngay ở M1 | backend_design §6.6.5 |
 | 16/10/2026 | — | Dashboard demo cảm biến (`frontend/`): React + Vite + TS + ECharts, giao diện sáng; lấy dữ liệu bằng `fetch` + hook polling 10 giây (chưa chốt FE1, chưa có SSE) | frontend_design |
 | 16/10/2026 | — | API chỉ đọc `/api/v1/dev/*` (xem cả node pending) chỉ gắn khi `ENABLE_DEV_ENDPOINTS=true`, chỉ bật trong `docker-compose.dev.yml` | backend_modules |
+| 23/10/2026 | — | Giao diện kiểu IQAir theo `PLAN_NOW.md`: topbar pill trượt không dropdown; màu chủ đạo xanh lá nhạt; khung nội dung 1056 px nền trắng, chữ gốc 15 px | detail_plan §10 |
+| 23/10/2026 | FE4 | Bản đồ: Leaflet 1.9.4 + tile OSM (kiểu HOT, máy chủ OSM France; đổi bằng `VITE_MAP_TILE_URL`); chỉ dùng thư viện phổ biến | detail_plan §10.3 |
+| 23/10/2026 | — | Đặt tọa độ/duyệt trạm/trạm mặc định tạm bằng `scripts/set_station.py` (thay Admin M4) | detail_plan §10.3 |

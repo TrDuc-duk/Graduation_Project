@@ -37,23 +37,6 @@ class Freshness(BaseModel):
     is_stale: bool  # quá stale_after_s chưa nhận số đo mới (hoặc chưa có số đo nào)
 
 
-class NodeOut(BaseModel):
-    """Node (= trạm) kèm Gateway gần nhất và độ mới dữ liệu."""
-
-    id: int
-    station_code: str
-    device_code: str
-    name: str
-    status: str  # pending: chưa được Admin duyệt, chưa công khai
-    connectivity: str
-    battery_pct: int | None
-    effective_interval_s: int | None
-    last_seen_at: datetime | None
-    last_measurement_at: datetime | None
-    gateway: GatewayOut | None
-    freshness: Freshness
-
-
 class Reading(BaseModel):
     """Một số đo thô; null nghĩa là cảm biến lỗi/thiếu, không phải 0."""
 
@@ -72,6 +55,27 @@ class Reading(BaseModel):
     qc_flags: int
     quarantined: bool  # qua Gateway chưa duyệt (cờ UNTRUSTED_GATEWAY)
     time_unreliable: bool  # batch nghi chứa dữ liệu cũ (cờ TIME_UNRELIABLE)
+
+
+class NodeOut(BaseModel):
+    """Node (= trạm) kèm Gateway gần nhất và độ mới dữ liệu."""
+
+    id: int
+    station_code: str
+    device_code: str
+    name: str
+    district: str | None
+    latitude: float | None  # null khi Admin chưa nhập vị trí (node tự phát hiện)
+    longitude: float | None
+    status: str  # pending: chưa được Admin duyệt, chưa công khai
+    connectivity: str
+    battery_pct: int | None
+    effective_interval_s: int | None
+    last_seen_at: datetime | None
+    last_measurement_at: datetime | None
+    gateway: GatewayOut | None
+    freshness: Freshness
+    latest: Reading | None  # số đo mới nhất (cho bản đồ, danh sách trạm)
 
 
 class NodeReadings(BaseModel):

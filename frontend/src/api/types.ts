@@ -21,6 +21,9 @@ export interface NodeInfo {
   station_code: string;
   device_code: string;
   name: string;
+  district: string | null;
+  latitude: number | null; // null khi chưa nhập vị trí
+  longitude: number | null;
   status: string;
   connectivity: string;
   battery_pct: number | null;
@@ -29,6 +32,7 @@ export interface NodeInfo {
   last_measurement_at: string | null;
   gateway: GatewayInfo | null;
   freshness: Freshness;
+  latest: Reading | null; // số đo mới nhất
 }
 
 /** Một số đo thô. null = cảm biến lỗi/thiếu, KHÔNG phải 0. */

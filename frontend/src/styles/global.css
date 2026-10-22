@@ -987,6 +987,337 @@ select {
   }
 }
 
+/* ---------- trang Bản đồ ---------- */
+/* Khung bản đồ: isolation giữ z-index của Leaflet bên trong, không đè lên topbar khi cuộn */
+.map {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  box-shadow: var(--shadow);
+}
+
+.map__viewport {
+  height: clamp(420px, calc(100vh - var(--appbar-h) - 200px), 760px);
+  background: #e8eef3;
+}
+
+.map--fullscreen {
+  border-radius: 0;
+}
+
+.map--fullscreen .map__viewport {
+  height: 100vh;
+}
+
+.map .leaflet-container {
+  font: inherit;
+}
+
+.map .leaflet-bar {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.map .leaflet-bar a {
+  width: 36px;
+  height: 36px;
+  color: var(--text);
+  line-height: 36px;
+}
+
+.map__tools {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 1000;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.map-ctrl {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease);
+}
+
+.map-ctrl:hover {
+  background: var(--surface-muted);
+}
+
+/* Chú giải 6 mức AQI ở đáy bản đồ (giống IQAir) */
+.map__legend {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  max-width: calc(100% - 80px);
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.map__legend li {
+  padding: 3px 8px;
+}
+
+.map__notice {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  z-index: 1000;
+  max-width: calc(100% - 120px);
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+/* Marker tròn màu AQI, số AQI ở giữa; viền đứt khi dữ liệu cũ */
+.map-marker {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #334155;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.3);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.2s var(--ease);
+}
+
+.leaflet-marker-icon:hover .map-marker,
+.leaflet-marker-icon:focus-visible .map-marker {
+  transform: scale(1.12);
+}
+
+.map-marker--stale {
+  border-style: dashed;
+  border-color: var(--text);
+}
+
+.map-marker--active {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Popup thông tin trạm */
+.map .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgb(15 23 42 / 0.18);
+}
+
+.map .leaflet-popup-content {
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* CSS mặc định của Leaflet đặt lề cho <p> và màu cho <a> trong popup: đưa về kiểu của trang */
+.map .leaflet-popup-content p {
+  margin: 0;
+}
+
+.map-popup {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  color: var(--text);
+}
+
+.map-popup__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.map-popup__name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.map-popup__code {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.map-popup__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.map-popup__aqi {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-weight: 600;
+}
+
+.map-popup__aqi strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-popup__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.map-popup__stats dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.map-popup__stats dd {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-popup__time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.map-popup__links {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.map .map-popup__links a {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.map .map-popup__links a:hover {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* Danh sách trạm dưới bản đồ */
+.station-list {
+  display: grid;
+  gap: 2px;
+}
+
+.station-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto minmax(0, auto);
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease);
+}
+
+.station-row:hover {
+  background: var(--surface-muted);
+}
+
+.station-row[aria-current="true"] {
+  background: var(--primary-soft);
+}
+
+.station-row__aqi {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.station-row__name {
+  display: grid;
+}
+
+.station-row__name small,
+.station-row__tags small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.station-row__value {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.station-row__value strong {
+  color: var(--text);
+}
+
+.station-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.tag--muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.skeleton--map {
+  height: 520px;
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 1024px) {
   .ov-grid,
@@ -1081,6 +1412,20 @@ select {
 @media (max-width: 600px) {
   .page {
     padding-top: var(--space-5);
+  }
+
+  .station-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .station-row__value,
+  .station-row__tags {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .map__legend {
+    font-size: 0.7rem;
   }
 
   .page-header {

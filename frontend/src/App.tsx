@@ -3,16 +3,17 @@ import { BrowserRouter, Link, Route, Routes } from "react-router";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppLayout } from "@/layouts/AppLayout";
+import { MapPage } from "@/pages/MapPage";
 import { SensorDashboard } from "@/pages/SensorDashboard";
 
-/** Định tuyến các trang. Bản đồ và Lịch sử sẽ thay trang tạm ở bước 3, 4. */
+/** Định tuyến các trang. Lịch sử sẽ thay trang tạm ở bước 4. */
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<SensorDashboard />} />
-          <Route path="map" element={<ComingSoon title="Bản đồ chất lượng không khí" />} />
+          <Route path="map" element={<MapPage />} />
           <Route path="history" element={<ComingSoon title="Lịch sử dữ liệu" />} />
           <Route path="*" element={<NotFound />} />
         </Route>

@@ -37,6 +37,16 @@ async def list_nodes(session: AsyncSession) -> list[Node]:
     return list((await session.scalars(select(Node).where(Node.status != "retired").order_by(Node.id))).all())
 
 
+async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int, tuple[float, float]]:
+    """Tọa độ (vĩ độ, kinh độ) của các node đã có vị trí; node chưa có tọa độ không nằm trong kết quả."""
+    if not node_ids:
+        return {}
+    stmt = select(Node.id, func.ST_Y(Node.geom), func.ST_X(Node.geom)).where(
+        Node.id.in_(node_ids), Node.geom.is_not(None)
+    )
+    return {node_id: (lat, lng) for node_id, lat, lng in (await session.execute(stmt)).all()}
+
+
 async def get_node(session: AsyncSession, node_id: int) -> Node | None:
     """Đọc một node theo id nội bộ."""
     return await session.get(Node, node_id)

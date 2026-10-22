@@ -11,6 +11,7 @@ import {
   Wind,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { fetchNodes, fetchReadings } from "@/api/dev";
 import type { NodeInfo, NodeReadings, RangeHours, Reading } from "@/api/types";
 import { AqiCard } from "@/components/aqi/AqiCard";
@@ -55,7 +56,10 @@ interface DashboardData {
  * khuyến nghị sức khỏe, thang AQI và biểu đồ của node đang chọn; làm mới mỗi 10 giây.
  */
 export function SensorDashboard() {
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // Node đang xem nằm trên URL (?node=) để mở thẳng từ Bản đồ, Lịch sử
+  const [params, setParams] = useSearchParams();
+  const selectedId = Number(params.get("node")) || null;
+  const setSelectedId = (id: number) => setParams({ node: String(id) }, { replace: true });
   const [hours, setHours] = useState<RangeHours>(1);
 
   // Mỗi lượt: lấy danh sách node, rồi số đo của node đang chọn (mặc định node đầu tiên)
