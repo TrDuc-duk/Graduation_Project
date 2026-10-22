@@ -37,6 +37,12 @@ async def list_nodes(session: AsyncSession) -> list[Node]:
     return list((await session.scalars(select(Node).where(Node.status != "retired").order_by(Node.id))).all())
 
 
+async def list_public_nodes(session: AsyncSession) -> list[Node]:
+    """Trạm công khai: node đã duyệt (`active`) và bật `is_public`, theo mã trạm."""
+    stmt = select(Node).where(Node.status == "active", Node.is_public.is_(True)).order_by(Node.station_code)
+    return list((await session.scalars(stmt)).all())
+
+
 async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int, tuple[float, float]]:
     """Tọa độ (vĩ độ, kinh độ) của các node đã có vị trí; node chưa có tọa độ không nằm trong kết quả."""
     if not node_ids:

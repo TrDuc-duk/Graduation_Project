@@ -138,6 +138,38 @@ async def latest_reading(session: AsyncSession, node_id: int) -> Measurement | N
     return (await session.scalars(stmt)).one_or_none()
 
 
+async def latest_trusted_reading(session: AsyncSession, node_id: int) -> Measurement | None:
+    """Số đo mới nhất (theo thời điểm nhận) dùng được cho số đo hiện tại: không mang cờ EXCLUDE_MASK."""
+    stmt = (
+        select(Measurement)
+        .where(Measurement.node_id == node_id, Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0)
+        .order_by(Measurement.received_at.desc(), Measurement.seq.desc())
+        .limit(1)
+    )
+    return (await session.scalars(stmt)).one_or_none()
+
+
+async def trusted_series(session: AsyncSession, node_id: int, since: datetime) -> list[Row]:
+    """Các số đo dùng được cho tổng hợp có measured_at > `since` (cũ → mới), chỉ các cột môi trường."""
+    stmt = (
+        select(
+            Measurement.measured_at,
+            Measurement.aqi_instant,
+            Measurement.pm25,
+            Measurement.pm10,
+            Measurement.temperature,
+            Measurement.humidity,
+        )
+        .where(
+            Measurement.node_id == node_id,
+            Measurement.measured_at > since,
+            Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0,
+        )
+        .order_by(Measurement.measured_at)
+    )
+    return list((await session.execute(stmt)).all())
+
+
 async def last_trusted_pm25(session: AsyncSession, node_id: int, since: datetime) -> float | None:
     """PM2.5 của số đo đáng tin mới nhất từ `since` (để xét PM_SPIKE)."""
     stmt = (

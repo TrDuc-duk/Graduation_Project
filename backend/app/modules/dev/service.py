@@ -1,5 +1,6 @@
 """Ghép dữ liệu node, Gateway, số đo cho dashboard demo. Chỉ đọc; không sở hữu bảng nào."""
 
+from dataclasses import asdict
 from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,7 @@ from app.modules.dev.schemas import UNITS, Freshness, GatewayOut, HourlyPoint, N
 from app.modules.devices import service as devices
 from app.modules.devices.models import Gateway, Node
 from app.modules.ingest.normalize import instant_aqi
+from app.modules.stations import service as stations
 from app.modules.telemetry import service as telemetry
 from app.modules.telemetry.models import Measurement
 from app.modules.telemetry.qc import QcFlag
@@ -120,7 +122,7 @@ async def _node_out(
         last_seen_at=node.last_seen_at,
         last_measurement_at=node.last_measurement_at,
         gateway=await _gateway_out(gateway, now) if gateway else None,
-        freshness=await _freshness(node, latest, now),
+        freshness=Freshness(**asdict(await stations.freshness(node, latest, now))),
         latest=_reading(latest) if latest else None,
     )
 
@@ -136,17 +138,6 @@ async def _gateway_out(gateway: Gateway, now: datetime) -> GatewayOut:
         online=online,
         last_seen_at=gateway.last_seen_at,
         last_telemetry_at=gateway.last_telemetry_at,
-    )
-
-
-async def _freshness(node: Node, latest: Measurement | None, now: datetime) -> Freshness:
-    """Dữ liệu cũ khi quá offline_after_s của node (chưa đặt thì default_node_offline_after_s) chưa nhận số đo mới."""
-    stale_after = node.offline_after_s or await settings_store.get("default_node_offline_after_s")
-    if latest is None:
-        return Freshness(last_received_at=None, age_s=None, stale_after_s=stale_after, is_stale=True)
-    age = int((now - latest.received_at).total_seconds())
-    return Freshness(
-        last_received_at=latest.received_at, age_s=age, stale_after_s=stale_after, is_stale=age > stale_after
     )
 
 

@@ -25,6 +25,7 @@ DEFAULTS: dict[str, Any] = {
     "telemetry_ip_error_limit_per_min": 20,
     "telemetry_global_limit_per_min": 6000,
     "pm_spike_delta": 100,
+    "default_station_id": None,  # mã trạm mặc định (vd "ST001") cho Xiaozhi khi người dùng không nêu trạm
 }
 
 CACHE_TTL_S = 30

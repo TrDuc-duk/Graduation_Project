@@ -83,6 +83,11 @@ async def list_nodes(session: AsyncSession) -> list[Node]:
     return await repository.list_nodes(session)
 
 
+async def list_public_nodes(session: AsyncSession) -> list[Node]:
+    """Trạm công khai (đã duyệt, bật công khai), theo mã trạm. Node pending/bảo trì/ngưng không có ở đây."""
+    return await repository.list_public_nodes(session)
+
+
 async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int, tuple[float, float]]:
     """Tọa độ (vĩ độ, kinh độ) theo id node; node chưa được nhập vị trí thì không có trong kết quả."""
     return await repository.node_positions(session, node_ids)

@@ -201,3 +201,12 @@ Mỗi mục một commit. Kiểm tra giao diện bằng Chrome headless (CDP): t
 - Thẻ thống kê trung bình, thấp nhất, cao nhất của từng chỉ số (frontend tính từ dữ liệu trả về, ghi rõ nguồn: số đo thô hay trung bình giờ).
 - 3 biểu đồ ECharts có tooltip, hiệu ứng, kéo chọn đoạn (dataZoom): AQI (cột tô màu theo mức khi xem theo giờ), so sánh PM2.5 với PM10, nhiệt độ – độ ẩm (hai trục). Giờ trống để đứt quãng.
 - API dev `GET /dev/nodes/{id}/readings` nhận thêm `hours=168|720`: trả `resolution="hour"` và `hourly` (đủ mọi giờ, nhãn `h` = cửa sổ `(h−1, h]`, giờ trống giá trị null), trung bình bỏ số đo mang cờ `EXCLUDE_MASK`; AQI giờ = `compute_aqi` của PM trung bình giờ (dùng lại `instant_aqi`). Khoảng 1/6/24 giữ nguyên (`resolution="raw"`).
+
+### 10.5. A1 – Module `stations` dùng chung
+- `core/aqi_scale.py`: 6 mức AQI Mỹ (mã, khoảng, nhãn tiếng Việt khớp `frontend/src/lib/aqi.ts` — có test đối chiếu, khuyến nghị sức khỏe).
+- `modules/stations/service.py` (chỉ đọc, qua `devices` và `telemetry`):
+  - trạm = node `active` + `is_public`; `resolve_ref`: `default` → `app_settings.default_station_id`, mã trạm không phân biệt hoa thường, tên bỏ dấu (trùng hẳn trước, rồi chứa); nhiều trạm khớp → `Ambiguous`, không đoán;
+  - `freshness` chuyển từ API dev sang đây (API dev gọi lại, output giữ nguyên);
+  - `latest_trusted`: số đo hiện tại bỏ bản mang cờ `EXCLUDE_MASK`;
+  - `summary`: trung bình/thấp nhất/cao nhất + xu hướng (1/3 thời gian cuối so với 1/3 đầu, chênh ≥ 10, cần ≥ 6 giá trị) cho AQI, PM2.5, PM10.
+- `settings_store.DEFAULTS` thêm `default_station_id: None`.

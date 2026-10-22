@@ -84,6 +84,16 @@ async def latest_reading(session: AsyncSession, node_id: int) -> Measurement | N
     return await repository.latest_reading(session, node_id)
 
 
+async def latest_trusted_reading(session: AsyncSession, node_id: int) -> Measurement | None:
+    """Số đo mới nhất dùng được cho "hiện tại" (bỏ bản cách ly, nghi dữ liệu cũ, bị thay thế), hoặc None."""
+    return await repository.latest_trusted_reading(session, node_id)
+
+
+async def trusted_series(session: AsyncSession, node_id: int, since: datetime) -> list[Row]:
+    """Chuỗi số đo dùng được cho tổng hợp từ `since` (measured_at, aqi_instant, pm25, pm10, nhiệt độ, độ ẩm)."""
+    return await repository.trusted_series(session, node_id, since)
+
+
 async def last_trusted_pm25(session: AsyncSession, node_id: int, since: datetime) -> float | None:
     """PM2.5 đáng tin gần nhất của node từ `since`."""
     return await repository.last_trusted_pm25(session, node_id, since)
