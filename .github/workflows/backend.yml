@@ -1,0 +1,50 @@
+# CI tối thiểu cho backend: lint → migration hai chiều → pytest trên TimescaleDB thật (backend_modules 6).
+name: backend
+
+on:
+  push:
+    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", "docker/**", "ml/ml_xgb/src/**", ".github/workflows/backend.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Mật khẩu chỉ dùng cho DB tạm của CI
+      DB_SUPERUSER_PASSWORD: ci_super
+      DB_MIGRATOR_PASSWORD: ci_migrator
+      DB_APP_PASSWORD: ci_app
+      JWT_SECRET: ci_jwt_secret_0123456789abcdef0123456789abcdef
+      GATEWAY_SECRETS: super-secret-key
+      PROVISION_KEY: airquality2026
+      DATABASE_URL: postgresql+psycopg://aqi_app:ci_app@localhost:5432/aqi
+      MIGRATION_DATABASE_URL: postgresql+psycopg://aqi_migrator:ci_migrator@localhost:5432/aqi
+      ALLOW_TEST_DB_WIPE: "1"   # DB tạm của CI, được phép xóa dữ liệu khi test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      # Dùng đúng compose dev và script tạo vai trò DB của dự án (docker/db/100_aqi_roles.sh)
+      - name: Start database
+        working-directory: docker
+        run: docker compose -f docker-compose.dev.yml up -d --wait db
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check . && ruff format --check .
+
+      - name: Migration round-trip
+        run: alembic upgrade head && alembic downgrade base && alembic upgrade head
+
+      - name: Tests
+        run: pytest -q

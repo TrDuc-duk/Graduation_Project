@@ -1,0 +1,20 @@
+[project]
+name = "aqi-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+# "../ml/ml_xgb" để import được src.aqi giống trong image Docker (PYTHONPATH=/opt/aqi_ml)
+pythonpath = [".", "../ml/ml_xgb"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"

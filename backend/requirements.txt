@@ -1,0 +1,15 @@
+# Phụ thuộc khi chạy (Dockerfile cài file này). Ghim phiên bản (backend_modules 6).
+fastapi==0.143.1
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.0
+SQLAlchemy[asyncio]==2.1.4
+psycopg[binary]==3.3.6
+alembic==1.20.0
+GeoAlchemy2==0.20.0
+tenacity==9.2.1
+limits==5.8.0
+APScheduler==3.11.3
+# Cùng phiên bản với ml/ml_xgb/requirements.txt (src.aqi dùng numpy, pandas)
+numpy==2.5.3
+pandas==3.0.6

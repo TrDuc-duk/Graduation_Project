@@ -15,7 +15,7 @@ Toàn bộ hệ thống chạy bằng Docker Compose trên một VPS (tham chi�
 | File | Nội dung |
 |---|---|
 | `docker-compose.yml` | Môi trường chạy thật |
-| `docker-compose.dev.yml` | Dev: `db` + `api` tự nạp lại code, mở cổng trên `127.0.0.1` |
+| `docker-compose.dev.yml` | Dev: `db` + `api` tự nạp lại code + frontend qua Nginx, mở cổng trên `127.0.0.1` |
 | `.env.example` | Mọi biến cấu hình; chép thành `.env` |
 | `db/100_aqi_roles.sh` | Khởi tạo DB một lần: PostGIS, vai trò `aqi_migrator` và `aqi_app` |
 | `nginx/nginx.conf`, `nginx/default.conf` | Cấu hình cấp main (có `events`) và các server |
@@ -66,11 +66,19 @@ Sửa cấu hình Nginx thì không cần build lại: `docker compose exec ngin
 ## Dev trên máy cá nhân
 
 ```bash
-cp docker/.env.example docker/.env          # điền mật khẩu bất kỳ
-cd docker && docker compose -f docker-compose.dev.yml up
+# Chỉ chép nếu chưa có .env; điền mật khẩu và secret trước khi chạy.
+cp -n docker/.env.example docker/.env
+# Có thể thêm API_PORT=8001 nếu cổng 8000 đã bận.
+cd docker
+docker compose -f docker-compose.dev.yml up -d --wait db
+docker compose -f docker-compose.dev.yml build api
+docker compose -f docker-compose.dev.yml run --rm api alembic upgrade head
+docker compose -f docker-compose.dev.yml up -d --build --wait api frontend
 ```
 
-API ở `http://127.0.0.1:8000` (có `/api/docs`; cổng đổi bằng `API_PORT` nếu đã bận), DB ở `127.0.0.1:5432`. Frontend chạy `npm run dev` trong `frontend/`, Vite proxy `/api` tới cổng 8000.
+Frontend ở `http://localhost:5173` (đổi bằng `FRONTEND_PORT`), Nginx chuyển `/api/` tới backend trong mạng Docker. Backend mặc định ở `http://localhost:8000` (có `/api/docs`); máy hiện tại dùng `API_PORT=8001` nên truy cập `http://localhost:8001/api/docs`. DB ở `127.0.0.1:5432`.
+
+Khi sửa frontend, chạy lại `docker compose -f docker-compose.dev.yml up -d --build frontend`. Muốn dùng Vite tự cập nhật khi sửa code, dừng service frontend rồi chạy `npm ci && npm run dev` trong `frontend/`; proxy Vite mặc định tới `http://127.0.0.1:8001`, đổi bằng `VITE_BACKEND_URL` nếu cần.
 
 ## HTTPS
 

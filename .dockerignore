@@ -9,6 +9,8 @@
 **/*.pyc
 **/.venv/
 **/.pytest_cache/
+**/.ruff_cache/
+**/.env
 backend/tests/
 frontend/node_modules/
 frontend/dist/

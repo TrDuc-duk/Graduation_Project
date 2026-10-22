@@ -1,0 +1,136 @@
+"""Truy vấn SQL của module telemetry. Không commit."""
+
+from datetime import datetime, timedelta
+
+from sqlalchemy import Row, insert, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.telemetry.models import IngestBatch, Measurement
+from app.modules.telemetry.qc import EXCLUDE_MASK, QcFlag
+
+
+async def insert_batch(session: AsyncSession, **fields: object) -> int:
+    """Thêm một dòng ingest_batches, trả id."""
+    return await session.scalar(insert(IngestBatch).values(**fields).returning(IngestBatch.id))
+
+
+async def update_batch(session: AsyncSession, batch_id: int, received_at: datetime, **fields: object) -> None:
+    """Cập nhật thống kê của một batch đã ghi."""
+    await session.execute(
+        update(IngestBatch).where(IngestBatch.id == batch_id, IngestBatch.received_at == received_at).values(**fields)
+    )
+
+
+async def insert_measurements(session: AsyncSession, rows: list[dict]) -> list[int]:
+    """Chèn nhiều số đo, trả id theo đúng thứ tự `rows`."""
+    if not rows:
+        return []
+    stmt = insert(Measurement).returning(Measurement.id, sort_by_parameter_order=True)
+    return list((await session.scalars(stmt, rows)).all())
+
+
+async def find_copies(session: AsyncSession, node_id: int, hashes: list[int], received_since: datetime) -> list[Row]:
+    """Bản sao còn hiệu lực (chưa SUPERSEDED) của node có payload_hash trong `hashes`, nhận từ `received_since`.
+
+    Điều kiện measured_at ≥ received_since − 1 ngày để TimescaleDB chỉ quét chunk gần (database_design 6).
+    """
+    stmt = select(
+        Measurement.id, Measurement.measured_at, Measurement.received_at, Measurement.payload_hash, Measurement.qc_flags
+    ).where(
+        Measurement.node_id == node_id,
+        Measurement.payload_hash.in_(hashes),
+        Measurement.received_at >= received_since,
+        Measurement.measured_at >= received_since - timedelta(days=1),
+        Measurement.superseded_at.is_(None),
+    )
+    return list((await session.execute(stmt)).all())
+
+
+async def mark_superseded(session: AsyncSession, keys: list[tuple[int, datetime]], at: datetime) -> None:
+    """Gắn cờ SUPERSEDED và superseded_at cho các bản bị bản sao tốt hơn thay (luôn đi cùng nhau, R21)."""
+    for mid, measured_at in keys:
+        await session.execute(
+            update(Measurement)
+            .where(Measurement.id == mid, Measurement.measured_at == measured_at)
+            .values(qc_flags=Measurement.qc_flags.op("|")(int(QcFlag.SUPERSEDED)), superseded_at=at)
+        )
+
+
+async def nodes_with_trusted_data(session: AsyncSession, since: datetime) -> list[int]:
+    """Node có số đo đáng tin nhận từ `since`."""
+    stmt = (
+        select(Measurement.node_id)
+        .where(
+            Measurement.received_at >= since,
+            Measurement.measured_at >= since - timedelta(days=1),
+            Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0,
+        )
+        .distinct()
+    )
+    return list((await session.scalars(stmt)).all())
+
+
+async def trusted_with_batch(session: AsyncSession, node_id: int, since: datetime) -> list[Row]:
+    """Số đo đáng tin của node từ `since`, kèm thông tin batch (nghi cũ, số lần thử), theo thứ tự nhận."""
+    stmt = (
+        select(
+            Measurement.gateway_id,
+            Measurement.batch_id,
+            Measurement.received_at,
+            Measurement.seq,
+            Measurement.msg_id,
+            Measurement.time_source,
+            IngestBatch.stale_suspected,
+            IngestBatch.attempts,
+        )
+        .join(
+            IngestBatch,
+            (IngestBatch.id == Measurement.batch_id) & (IngestBatch.received_at == Measurement.received_at),
+        )
+        .where(
+            Measurement.node_id == node_id,
+            Measurement.received_at >= since,
+            Measurement.measured_at >= since - timedelta(days=1),
+            Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0,
+        )
+        .order_by(Measurement.received_at, Measurement.seq)
+    )
+    return list((await session.execute(stmt)).all())
+
+
+async def readings(session: AsyncSession, node_id: int, since: datetime, limit: int) -> list[Measurement]:
+    """Số đo còn hiệu lực (bỏ bản SUPERSEDED) của node có measured_at từ `since`, cũ → mới, tối đa `limit` dòng."""
+    stmt = (
+        select(Measurement)
+        .where(Measurement.node_id == node_id, Measurement.measured_at >= since, Measurement.superseded_at.is_(None))
+        .order_by(Measurement.measured_at.desc(), Measurement.received_at.desc(), Measurement.seq.desc())
+        .limit(limit)
+    )
+    return list(reversed((await session.scalars(stmt)).all()))
+
+
+async def latest_reading(session: AsyncSession, node_id: int) -> Measurement | None:
+    """Số đo còn hiệu lực mới nhất của node (theo thời điểm nhận)."""
+    stmt = (
+        select(Measurement)
+        .where(Measurement.node_id == node_id, Measurement.superseded_at.is_(None))
+        .order_by(Measurement.received_at.desc(), Measurement.seq.desc())
+        .limit(1)
+    )
+    return (await session.scalars(stmt)).one_or_none()
+
+
+async def last_trusted_pm25(session: AsyncSession, node_id: int, since: datetime) -> float | None:
+    """PM2.5 của số đo đáng tin mới nhất từ `since` (để xét PM_SPIKE)."""
+    stmt = (
+        select(Measurement.pm25)
+        .where(
+            Measurement.node_id == node_id,
+            Measurement.measured_at >= since,
+            Measurement.pm25.is_not(None),
+            Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0,
+        )
+        .order_by(Measurement.measured_at.desc(), Measurement.received_at.desc(), Measurement.seq.desc())
+        .limit(1)
+    )
+    return await session.scalar(stmt)

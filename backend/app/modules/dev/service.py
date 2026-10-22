@@ -1,0 +1,109 @@
+"""Ghép dữ liệu node, Gateway, số đo cho dashboard demo. Chỉ đọc; không sở hữu bảng nào."""
+
+from datetime import datetime, timedelta
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core import settings_store, timeutil
+from app.modules.dev.schemas import UNITS, Freshness, GatewayOut, NodeOut, NodeReadings, Reading
+from app.modules.devices import service as devices
+from app.modules.devices.models import Gateway, Node
+from app.modules.telemetry import service as telemetry
+from app.modules.telemetry.models import Measurement
+from app.modules.telemetry.qc import QcFlag
+
+MAX_POINTS = 20_000
+
+
+async def list_nodes(session: AsyncSession) -> list[NodeOut]:
+    """Mọi node chưa ngưng hoạt động (kể cả pending) kèm Gateway và độ mới dữ liệu."""
+    now = timeutil.now()
+    return [await _node_out(session, node, now) for node in await devices.list_nodes(session)]
+
+
+async def node_readings(session: AsyncSession, node_id: int, hours: int) -> NodeReadings | None:
+    """Số đo của node trong `hours` giờ gần nhất (cũ → mới) và số đo mới nhất; node không có thì None."""
+    node = await devices.get_node(session, node_id)
+    if node is None:
+        return None
+    now = timeutil.now()
+    since = now - timedelta(hours=hours)
+    rows = await telemetry.readings(session, node.id, since, MAX_POINTS + 1)
+    latest = await telemetry.latest_reading(session, node.id)
+    return NodeReadings(
+        node=await _node_out(session, node, now, latest),
+        hours=hours,
+        since=since,
+        server_time=now,
+        units=UNITS,
+        latest=_reading(latest) if latest else None,
+        readings=[_reading(m) for m in rows[-MAX_POINTS:]],
+        truncated=len(rows) > MAX_POINTS,
+    )
+
+
+async def _node_out(session: AsyncSession, node: Node, now: datetime, latest: Measurement | None = None) -> NodeOut:
+    """Thông tin node: Gateway gần nhất (hoặc Gateway nhà) và độ mới theo số đo nhận gần nhất."""
+    latest = latest or await telemetry.latest_reading(session, node.id)
+    gateway_id = (latest.gateway_id if latest else None) or node.last_gateway_id or node.home_gateway_id
+    gateway = await devices.get_gateway(session, gateway_id) if gateway_id else None
+    return NodeOut(
+        id=node.id,
+        station_code=node.station_code,
+        device_code=node.device_code,
+        name=node.name,
+        status=node.status,
+        connectivity=node.connectivity,
+        battery_pct=node.battery_pct,
+        effective_interval_s=devices.effective_interval(node),
+        last_seen_at=node.last_seen_at,
+        last_measurement_at=node.last_measurement_at,
+        gateway=await _gateway_out(gateway, now) if gateway else None,
+        freshness=await _freshness(node, latest, now),
+    )
+
+
+async def _gateway_out(gateway: Gateway, now: datetime) -> GatewayOut:
+    """Gateway kèm cờ online: có liên lạc trong gateway_offline_after_s (mặc định 15 phút)."""
+    offline_after = await settings_store.get("gateway_offline_after_s")
+    online = gateway.last_seen_at is not None and (now - gateway.last_seen_at).total_seconds() <= offline_after
+    return GatewayOut(
+        id=gateway.id,
+        name=gateway.name,
+        status=gateway.status,
+        online=online,
+        last_seen_at=gateway.last_seen_at,
+        last_telemetry_at=gateway.last_telemetry_at,
+    )
+
+
+async def _freshness(node: Node, latest: Measurement | None, now: datetime) -> Freshness:
+    """Dữ liệu cũ khi quá offline_after_s của node (chưa đặt thì default_node_offline_after_s) chưa nhận số đo mới."""
+    stale_after = node.offline_after_s or await settings_store.get("default_node_offline_after_s")
+    if latest is None:
+        return Freshness(last_received_at=None, age_s=None, stale_after_s=stale_after, is_stale=True)
+    age = int((now - latest.received_at).total_seconds())
+    return Freshness(
+        last_received_at=latest.received_at, age_s=age, stale_after_s=stale_after, is_stale=age > stale_after
+    )
+
+
+def _reading(m: Measurement) -> Reading:
+    """Đổi một dòng measurements thành Reading, giữ nguyên null."""
+    return Reading(
+        measured_at=m.measured_at,
+        received_at=m.received_at,
+        gateway_id=m.gateway_id,
+        time_source=m.time_source,
+        pm25=m.pm25,
+        pm10=m.pm10,
+        co2=m.co2,
+        tvoc=m.tvoc,
+        temperature=m.temperature,
+        humidity=m.humidity,
+        battery_pct=m.battery_pct,
+        aqi_instant=m.aqi_instant,
+        qc_flags=m.qc_flags,
+        quarantined=bool(m.qc_flags & QcFlag.UNTRUSTED_GATEWAY),
+        time_unreliable=bool(m.qc_flags & QcFlag.TIME_UNRELIABLE),
+    )
