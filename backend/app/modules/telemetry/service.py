@@ -74,6 +74,11 @@ async def readings(session: AsyncSession, node_id: int, since: datetime, limit: 
     return await repository.readings(session, node_id, since, limit)
 
 
+async def hourly_means(session: AsyncSession, node_id: int, since: datetime) -> list[Row]:
+    """Trung bình theo giờ (nhãn h = cửa sổ (h−1, h]) của số đo dùng được cho tổng hợp, từ `since`."""
+    return await repository.hourly_means(session, node_id, since)
+
+
 async def latest_reading(session: AsyncSession, node_id: int) -> Measurement | None:
     """Số đo còn hiệu lực mới nhất của node, hoặc None."""
     return await repository.latest_reading(session, node_id)

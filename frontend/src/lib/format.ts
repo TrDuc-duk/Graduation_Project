@@ -35,6 +35,12 @@ export function formatDateTime(iso: string | Date | null | undefined): string {
   return `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
+/** "16/10 14:00" theo giờ Việt Nam (nhãn trục thời gian của khoảng nhiều ngày). */
+export function formatDayHour(ms: number): string {
+  const parts = Object.fromEntries(dateTimeFmt.formatToParts(new Date(ms)).map((p) => [p.type, p.value]));
+  return `${parts.day}/${parts.month} ${parts.hour}:${parts.minute}`;
+}
+
 /** "14:05" theo giờ Việt Nam (nhãn trục thời gian). */
 export function formatTime(ms: number): string {
   return timeFmt.format(new Date(ms));

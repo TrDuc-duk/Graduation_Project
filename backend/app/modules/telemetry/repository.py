@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import Row, insert, select, update
+from sqlalchemy import Row, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.telemetry.models import IngestBatch, Measurement
@@ -107,6 +107,24 @@ async def readings(session: AsyncSession, node_id: int, since: datetime, limit: 
         .limit(limit)
     )
     return list(reversed((await session.scalars(stmt)).all()))
+
+
+async def hourly_means(session: AsyncSession, node_id: int, since: datetime) -> list[Row]:
+    """Trung bình theo giờ của số đo dùng được cho tổng hợp (không mang cờ EXCLUDE_MASK) có measured_at > `since`.
+
+    Nhãn giờ `h` là cửa sổ (h−1, h] (backend_design 11.4); giờ không có số đo thì không có dòng.
+    """
+    stmt = text(
+        "SELECT time_bucket('1 hour', measured_at - interval '1 microsecond') + interval '1 hour' AS hour, "
+        "count(*) AS n_samples, avg(pm25) AS pm25, avg(pm10) AS pm10, "
+        "avg(co2)::double precision AS co2, avg(tvoc)::double precision AS tvoc, "
+        "avg(temperature) AS temperature, avg(humidity) AS humidity "
+        "FROM measurements "
+        "WHERE node_id = :node_id AND measured_at > :since AND superseded_at IS NULL AND qc_flags & :mask = 0 "
+        "GROUP BY 1 ORDER BY 1"
+    )
+    params = {"node_id": node_id, "since": since, "mask": int(EXCLUDE_MASK)}
+    return list((await session.execute(stmt, params)).all())
 
 
 async def latest_reading(session: AsyncSession, node_id: int) -> Measurement | None:

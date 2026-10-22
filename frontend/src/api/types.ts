@@ -54,17 +54,33 @@ export interface Reading {
   time_unreliable: boolean;
 }
 
-export type RangeHours = 1 | 6 | 24;
+// 1, 6, 24 giờ: số đo thô; 168, 720 giờ (7, 30 ngày): trung bình theo giờ
+export type RangeHours = 1 | 6 | 24 | 168 | 720;
 
 export type Units = Record<"pm25" | "pm10" | "co2" | "tvoc" | "temperature" | "humidity" | "battery", string>;
+
+/** Trung bình một giờ; nhãn `time` là giờ kết thúc của cửa sổ (time − 1 giờ, time]. Giờ trống: giá trị null. */
+export interface HourlyPoint {
+  time: string;
+  n_samples: number;
+  pm25: number | null;
+  pm10: number | null;
+  co2: number | null;
+  tvoc: number | null;
+  temperature: number | null;
+  humidity: number | null;
+  aqi: number | null; // backend tính từ PM trung bình giờ
+}
 
 export interface NodeReadings {
   node: NodeInfo;
   hours: RangeHours;
+  resolution: "raw" | "hour";
   since: string;
   server_time: string;
   units: Units;
   latest: Reading | null;
   readings: Reading[];
+  hourly: HourlyPoint[];
   truncated: boolean;
 }

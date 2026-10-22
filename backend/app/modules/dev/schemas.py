@@ -78,14 +78,34 @@ class NodeOut(BaseModel):
     latest: Reading | None  # số đo mới nhất (cho bản đồ, danh sách trạm)
 
 
+class HourlyPoint(BaseModel):
+    """Trung bình một giờ (nhãn `time` = cửa sổ (time−1h, time]); giờ không có số đo thì mọi giá trị null."""
+
+    time: datetime
+    n_samples: int
+    pm25: float | None
+    pm10: float | None
+    co2: float | None
+    tvoc: float | None
+    temperature: float | None
+    humidity: float | None
+    aqi: int | None  # compute_aqi của PM2.5, PM10 trung bình giờ (backend tính)
+
+
 class NodeReadings(BaseModel):
-    """Lịch sử số đo của một node trong khoảng `hours` giờ gần nhất."""
+    """Lịch sử số đo của một node trong khoảng `hours` giờ gần nhất.
+
+    `resolution = "raw"` (1, 6, 24 giờ): số đo thô trong `readings`.
+    `resolution = "hour"` (168, 720 giờ): trung bình theo giờ trong `hourly`, bỏ số đo cách ly/nghi cũ.
+    """
 
     node: NodeOut
-    hours: Literal[1, 6, 24]
+    hours: Literal[1, 6, 24, 168, 720]
+    resolution: Literal["raw", "hour"]
     since: datetime
     server_time: datetime
     units: dict[str, str]
     latest: Reading | None  # số đo mới nhất, kể cả khi nằm ngoài khoảng
     readings: list[Reading]
+    hourly: list[HourlyPoint]
     truncated: bool  # quá giới hạn số điểm, chỉ trả phần mới nhất

@@ -7,7 +7,7 @@ export function fetchNodes(signal?: AbortSignal): Promise<NodeInfo[]> {
   return getJson<NodeInfo[]>("/dev/nodes", signal);
 }
 
-/** Số đo của một node trong 1/6/24 giờ gần nhất, kèm số đo mới nhất và đơn vị. */
+/** Dữ liệu của một node: số đo thô (1/6/24 giờ) hoặc trung bình giờ (168/720 giờ), kèm số đo mới nhất, đơn vị. */
 export function fetchReadings(nodeId: number, hours: RangeHours, signal?: AbortSignal): Promise<NodeReadings> {
   return getJson<NodeReadings>(`/dev/nodes/${nodeId}/readings?hours=${hours}`, signal);
 }

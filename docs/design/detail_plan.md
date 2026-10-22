@@ -195,3 +195,9 @@ Mỗi mục một commit. Kiểm tra giao diện bằng Chrome headless (CDP): t
 - Tile: `tile.openstreetmap.org` bị DNS mạng dev trả về `127.0.0.1`; CARTO đã bắt buộc API key. Dùng tile OSM kiểu HOT của OSM France (không cần key), đổi được bằng `VITE_MAP_TILE_URL`.
 - API dev: `NodeOut` thêm `district`, `latitude`, `longitude`, `latest` (chỉ bổ sung trường).
 - `scripts/set_station.py` (chạy `python -m scripts.set_station` trong `backend/`): đặt tên, khu vực, tọa độ; `--activate` duyệt trạm pending; `--default` đặt `app_settings.default_station_id`. Chỉ sửa `nodes`, `app_settings`; không đụng số đo. **Chưa chạy trên DB thật**: cần tọa độ thật của NODE_076.
+
+### 10.4. F4 – Lịch sử
+- Bộ lọc: trạm, khoảng 1 giờ / 6 giờ / 24 giờ / 7 ngày / 30 ngày (nằm trên URL `?node=&range=`), chip bật/tắt từng chỉ số.
+- Thẻ thống kê trung bình, thấp nhất, cao nhất của từng chỉ số (frontend tính từ dữ liệu trả về, ghi rõ nguồn: số đo thô hay trung bình giờ).
+- 3 biểu đồ ECharts có tooltip, hiệu ứng, kéo chọn đoạn (dataZoom): AQI (cột tô màu theo mức khi xem theo giờ), so sánh PM2.5 với PM10, nhiệt độ – độ ẩm (hai trục). Giờ trống để đứt quãng.
+- API dev `GET /dev/nodes/{id}/readings` nhận thêm `hours=168|720`: trả `resolution="hour"` và `hourly` (đủ mọi giờ, nhãn `h` = cửa sổ `(h−1, h]`, giờ trống giá trị null), trung bình bỏ số đo mang cờ `EXCLUDE_MASK`; AQI giờ = `compute_aqi` của PM trung bình giờ (dùng lại `instant_aqi`). Khoảng 1/6/24 giữ nguyên (`resolution="raw"`).

@@ -88,3 +88,4 @@ Ký hiệu trạng thái: **Chưa bắt đầu** · **Nháp** (đang chờ chố
 | 23/10/2026 | — | Giao diện kiểu IQAir theo `PLAN_NOW.md`: topbar pill trượt không dropdown; màu chủ đạo xanh lá nhạt; khung nội dung 1056 px nền trắng, chữ gốc 15 px | detail_plan §10 |
 | 23/10/2026 | FE4 | Bản đồ: Leaflet 1.9.4 + tile OSM (kiểu HOT, máy chủ OSM France; đổi bằng `VITE_MAP_TILE_URL`); chỉ dùng thư viện phổ biến | detail_plan §10.3 |
 | 23/10/2026 | — | Đặt tọa độ/duyệt trạm/trạm mặc định tạm bằng `scripts/set_station.py` (thay Admin M4) | detail_plan §10.3 |
+| 23/10/2026 | — | Lịch sử 7/30 ngày: API dev trả trung bình theo giờ (bỏ cờ `EXCLUDE_MASK`), AQI giờ tính từ PM trung bình giờ, cho tới khi có `node_hourly` (M2) | detail_plan §10.4 |

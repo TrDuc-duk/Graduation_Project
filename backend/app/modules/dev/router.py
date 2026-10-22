@@ -12,7 +12,7 @@ from app.modules.dev.schemas import NodeOut, NodeReadings
 
 router = APIRouter(prefix="/dev", tags=["dev"])
 
-ALLOWED_HOURS = (1, 6, 24)
+ALLOWED_HOURS = (1, 6, 24, 168, 720)  # 168, 720 giờ (7, 30 ngày) trả trung bình theo giờ
 
 
 @router.get("/nodes")
@@ -23,9 +23,9 @@ async def list_nodes() -> list[NodeOut]:
 
 @router.get("/nodes/{node_id}/readings")
 async def node_readings(node_id: int, hours: int = 1) -> NodeReadings:
-    """Số đo của node trong 1, 6 hoặc 24 giờ gần nhất (cũ → mới), kèm số đo mới nhất và đơn vị."""
+    """Số đo của node trong 1, 6, 24 giờ (thô) hoặc 168, 720 giờ (trung bình giờ) gần nhất, kèm số đo mới nhất."""
     if hours not in ALLOWED_HOURS:
-        raise AppError("INVALID_RANGE", 422, "hours chỉ nhận 1, 6 hoặc 24")
+        raise AppError("INVALID_RANGE", 422, "hours chỉ nhận 1, 6, 24, 168 hoặc 720")
     result = await run_in_transaction(lambda s: service.node_readings(s, node_id, hours))
     if result is None:
         raise AppError("NODE_NOT_FOUND", 404, "Không tìm thấy node")

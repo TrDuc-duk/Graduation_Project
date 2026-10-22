@@ -5,8 +5,9 @@ from httpx import ASGITransport, AsyncClient
 from app import api
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.ingest.normalize import instant_aqi
 from tests.fixtures.firmware import item, sensor_error_item, telemetry
-from tests.integration.helpers import add_gateway, add_node
+from tests.integration.helpers import add_gateway, add_node, rows
 
 URL = "/api/v1/dev/nodes"
 
@@ -59,6 +60,39 @@ async def test_range_filter_and_latest_outside_range(client, db, clock):
     assert one_hour["readings"] == [] and len(six_hours["readings"]) == 1
     assert one_hour["latest"] is not None
     assert one_hour["node"]["freshness"]["is_stale"] is True  # 7200 giây > 3900
+
+
+async def test_week_range_returns_hourly_means_with_gaps(client, db, clock):
+    """7 ngày: trung bình từng giờ (nhãn h = cửa sổ (h−1, h]); giờ trống vẫn có điểm null; bỏ số đo cách ly."""
+    add_gateway(db)
+    node_id = add_node(db, 1)
+    clock.advance(minutes=10)  # 07:10 → giờ 08:00
+    await ingest(client, items=[item(msg_id=1, pm25=40.0, pm10=50.0)])
+    clock.advance(seconds=30)
+    await ingest(client, items=[item(msg_id=2, pm25=60.0, pm10=70.0)])
+    await ingest(client, gateway_id="GW_013", items=[item(msg_id=3, pm25=500.0, pm10=600.0)])  # Gateway lạ: cách ly
+    clock.advance(hours=2)  # 09:10:30 → điểm cuối là giờ 10:00
+    body = (await client.get(f"{URL}/{node_id}/readings", params={"hours": 168})).json()
+    assert (body["resolution"], body["readings"], len(body["hourly"])) == ("hour", [], 168)
+    assert body["hourly"][-1]["time"] == "2026-10-15T10:00:00Z"
+    by_time = {p["time"]: p for p in body["hourly"]}
+    hour = by_time["2026-10-15T08:00:00Z"]
+    assert (hour["n_samples"], hour["pm25"], hour["pm10"]) == (2, 50.0, 60.0)
+    assert hour["aqi"] == instant_aqi(50.0, 60.0)
+    empty = by_time["2026-10-15T09:00:00Z"]
+    assert (empty["n_samples"], empty["pm25"], empty["aqi"]) == (0, None, None)
+    # bản ghi qua Gateway lạ có lưu (cờ UNTRUSTED_GATEWAY) nhưng không vào trung bình giờ (50 = (40 + 60) / 2)
+    assert rows(db, "SELECT pm25, qc_flags FROM measurements WHERE gateway_id = 'GW_013'") == [(500.0, 256)]
+
+
+async def test_month_range_and_raw_ranges_keep_shape(client, db, clock):
+    add_gateway(db)
+    node_id = add_node(db, 1)
+    await ingest(client)
+    month = (await client.get(f"{URL}/{node_id}/readings", params={"hours": 720})).json()
+    day = (await client.get(f"{URL}/{node_id}/readings", params={"hours": 24})).json()
+    assert (month["resolution"], len(month["hourly"])) == ("hour", 720)
+    assert (day["resolution"], day["hourly"], len(day["readings"])) == ("raw", [], 1)
 
 
 async def test_quarantined_reading_is_flagged(client, db, clock):
