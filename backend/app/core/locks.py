@@ -13,6 +13,7 @@ from app.core.db import get_engine
 
 JOB_CLASS = 1
 NODE_ADDRESS_CLASS = 2
+PIPELINE_CLASS = 3
 
 # Mã job (database_design 8.4)
 JOB_CODES = {
@@ -44,13 +45,26 @@ async def job_lock(job: str) -> AsyncIterator[bool]:
 
     Khóa phiên không tự nhả khi transaction kết thúc, nên luôn nhả trong finally (backend_design 10).
     """
-    code = JOB_CODES[job]
+    async with _session_lock(JOB_CLASS, JOB_CODES[job]) as got:
+        yield got
+
+
+@asynccontextmanager
+async def pipeline_lock() -> AsyncIterator[bool]:
+    """Khóa (3, 0) của đường ống giờ (backend_design 7.1): chỉ một lượt chạy đường ống tại một thời điểm."""
+    async with _session_lock(PIPELINE_CLASS, 0) as got:
+        yield got
+
+
+@asynccontextmanager
+async def _session_lock(cls: int, key: int) -> AsyncIterator[bool]:
+    """Thử giữ khóa phiên (cls, key) trên một kết nối riêng mượn từ pool, nhả trong finally rồi mới trả kết nối."""
     async with get_engine().connect() as conn:
-        got = await conn.scalar(text("SELECT pg_try_advisory_lock(:c, :k)"), {"c": JOB_CLASS, "k": code})
+        got = await conn.scalar(text("SELECT pg_try_advisory_lock(:c, :k)"), {"c": cls, "k": key})
         await conn.commit()
         try:
             yield bool(got)
         finally:
             if got:
-                await conn.execute(text("SELECT pg_advisory_unlock(:c, :k)"), {"c": JOB_CLASS, "k": code})
+                await conn.execute(text("SELECT pg_advisory_unlock(:c, :k)"), {"c": cls, "k": key})
                 await conn.commit()

@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from app.core.logging import setup_logging
 from app.core.scheduler import add_job, scheduler
 from app.modules.hourly.jobs import hourly_rollup
 from app.modules.ingest.jobs import interval_stats
+from app.modules.pipeline.jobs import hourly_pipeline
 
 
 def register_jobs() -> None:
@@ -22,6 +24,8 @@ def register_jobs() -> None:
     add_job("outbox_dispatcher", outbox.dispatch_once, log_runs=False, trigger="interval", seconds=5)
     add_job("interval_stats", interval_stats, trigger="interval", hours=1)
     add_job("hourly_rollup", hourly_rollup, trigger="interval", minutes=5)
+    # Đường ống giờ: mỗi phút và chạy ngay khi khởi động (bù giờ còn thiếu sau restart, backend_design 7.1)
+    add_job("hourly_pipeline", hourly_pipeline, trigger="interval", minutes=1, next_run_time=datetime.now(UTC))
 
 
 @asynccontextmanager
