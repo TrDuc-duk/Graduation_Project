@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import Row, insert, select, text, update
+from sqlalchemy import ColumnElement, Row, and_, insert, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.telemetry.models import IngestBatch, Measurement
@@ -184,3 +184,54 @@ async def last_trusted_pm25(session: AsyncSession, node_id: int, since: datetime
         .limit(1)
     )
     return await session.scalar(stmt)
+
+
+def as_of_filter(cutoff: datetime | None) -> tuple[ColumnElement[bool], ColumnElement[bool]]:
+    """Điều kiện chọn bản ghi theo trạng thái tại `cutoff` (backend_design 7, R21); trả (được chọn, bị loại).
+
+    - Được chọn: đã nhận (`received_at ≤ cutoff`) và chưa bị bản sao tốt hơn thay tại lúc đó.
+    - Bị loại (chỉ đếm `n_excluded`): batch nghi cũ (`TIME_UNRELIABLE`, đặt lúc nhận, không đổi) hoặc
+      chưa được tin cậy tại lúc đó (`trusted_at` NULL hoặc sau cutoff).
+    `cutoff=None` là trạng thái hiện tại, tương đương as-of "bây giờ" vì cờ luôn khớp hai cột thời điểm (CHECK).
+    """
+    unreliable = Measurement.qc_flags.op("&")(int(QcFlag.TIME_UNRELIABLE)) != 0
+    if cutoff is None:
+        selected = Measurement.superseded_at.is_(None)
+        untrusted = Measurement.trusted_at.is_(None)
+    else:
+        selected = and_(
+            Measurement.received_at <= cutoff,
+            or_(Measurement.superseded_at.is_(None), Measurement.superseded_at > cutoff),
+        )
+        untrusted = or_(Measurement.trusted_at.is_(None), Measurement.trusted_at > cutoff)
+    return selected, or_(unreliable, untrusted)
+
+
+async def samples_for_hours(
+    session: AsyncSession, node_id: int, start: datetime, end: datetime, cutoff: datetime | None
+) -> list[Row]:
+    """Số đo của node có measured_at trong (start, end], chọn theo `as_of_filter(cutoff)`, cũ → mới.
+
+    Mỗi dòng có cột `excluded` cho biết mẫu bị loại khỏi giá trị trung bình.
+    """
+    selected, excluded = as_of_filter(cutoff)
+    stmt = (
+        select(
+            Measurement.measured_at,
+            Measurement.received_at,
+            Measurement.max_age_s,
+            Measurement.qc_flags,
+            excluded.label("excluded"),
+            Measurement.pm25,
+            Measurement.pm10,
+            Measurement.temperature,
+            Measurement.humidity,
+            Measurement.co2,
+            Measurement.tvoc,
+        )
+        .where(
+            Measurement.node_id == node_id, Measurement.measured_at > start, Measurement.measured_at <= end, selected
+        )
+        .order_by(Measurement.measured_at, Measurement.id)
+    )
+    return list((await session.execute(stmt)).all())

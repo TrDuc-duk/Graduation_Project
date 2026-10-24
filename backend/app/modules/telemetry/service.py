@@ -97,3 +97,10 @@ async def trusted_series(session: AsyncSession, node_id: int, since: datetime) -
 async def last_trusted_pm25(session: AsyncSession, node_id: int, since: datetime) -> float | None:
     """PM2.5 đáng tin gần nhất của node từ `since`."""
     return await repository.last_trusted_pm25(session, node_id, since)
+
+
+async def samples_for_hours(
+    session: AsyncSession, node_id: int, start: datetime, end: datetime, cutoff: datetime | None = None
+) -> list[Row]:
+    """Số đo dùng để tổng hợp giờ trong (start, end]; `cutoff` = tính theo trạng thái tại thời điểm đó (as-of)."""
+    return await repository.samples_for_hours(session, node_id, start, end, cutoff)
