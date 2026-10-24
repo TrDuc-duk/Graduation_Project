@@ -10,8 +10,12 @@ from sqlalchemy import text
 
 from app.core.db import get_sessionmaker
 
-# Chỉ các khóa backend đã dùng tới; mốc sau bổ sung dần
+# Đủ các khóa của backend_design 15.2; migration 0007_settings_seed chèn đúng các giá trị này vào DB
 DEFAULTS: dict[str, Any] = {
+    "public_horizons": list(range(3, 73, 3)),  # đủ 24 mốc 3–72 giờ (P6)
+    "forecast_confidence": {"high": [3, 6], "medium": [9, 24], "low": [27, 72]},
+    "hourly_min_samples": 1,  # P1, tạm thời
+    "hour_close_grace_s": 180,
     "gateway_offline_after_s": 900,
     "default_node_offline_after_s": 3900,
     "gateway_flush_interval_s": 30,
@@ -19,13 +23,26 @@ DEFAULTS: dict[str, Any] = {
     "stale_gap_factor": 2,
     "stale_send_tolerance_s": 45,
     "max_msg_gap": 20,
+    "telegram_enabled": True,
+    "telegram_min_severity": "warning",
+    "forecast_catchup_max_hours": 24,
+    "forecast_late_after_s": 600,
+    "sse_max_per_ip": 50,
+    "sse_max_per_admin": 10,
+    "sse_max_total": 1000,
+    "sse_queue_size": 100,
+    "disk_warn_pct": 70,
+    "disk_critical_pct": 85,
     "address_quarantine_days": 30,
+    "refresh_grace_s": 30,
+    "forecast_stale_max_h": 6,
+    "forecast_max_attempts": 3,
     "interval_max_iqr_ratio": 0.2,
     "telemetry_gateway_limit_per_min": 120,
     "telemetry_ip_error_limit_per_min": 20,
     "telemetry_global_limit_per_min": 6000,
+    "default_station_id": None,  # mã trạm mặc định (vd "ST001") cho trang chủ và Xiaozhi khi không nêu trạm
     "pm_spike_delta": 100,
-    "default_station_id": None,  # mã trạm mặc định (vd "ST001") cho Xiaozhi khi người dùng không nêu trạm
 }
 
 CACHE_TTL_S = 30
