@@ -1,6 +1,6 @@
 # Hạ tầng Docker
 
-Toàn bộ hệ thống chạy bằng Docker Compose trên một VPS (tham chiếu 2 vCPU / 4 GB RAM / 80 GB SSD). Thiết kế: [backend_design §17](../docs/design/backend_design.md#17-triển-khai), [database_design §12](../docs/design/database_design.md#12-vai-trò-db-kết-nối-phiên).
+Toàn bộ hệ thống chạy bằng Docker Compose trên một VPS (tham chiếu 2 vCPU / 4 GB RAM / 80 GB SSD). Thiết kế: backend_design §17, database_design §12 (tài liệu nội bộ).
 
 ## Thành phần
 
@@ -50,7 +50,7 @@ docker compose run --rm nginx nginx -t                        # kiểm tra cấu
 
 - DNS của `DOMAIN` phải trỏ về VPS trước khi chạy. Certbot tự thử lại mỗi 5 phút đến khi xin được chứng chỉ, trong lúc đó Nginx dùng chứng chỉ tự ký.
 - Demo trong mạng LAN không có domain: để `DOMAIN` trống, hệ thống dùng chứng chỉ tự ký (firmware dùng `setInsecure()` nên vẫn gửi được).
-- Firmware gửi tới địa chỉ đã nạp sẵn; kiểm tra theo [backend_design §17.3](../docs/design/backend_design.md#173-kiểm-tra-firmware-đang-trỏ-về-đâu).
+- Firmware gửi tới địa chỉ đã nạp sẵn; mở Serial Monitor (115200 baud) lúc Gateway khởi động, xem dòng `API Server`.
 
 ## Cập nhật phiên bản mới
 

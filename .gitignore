@@ -64,3 +64,19 @@ Thumbs.db
 # Hạ tầng Docker: secret, model triển khai, bản sao lưu
 /models/
 /backups/
+
+# ID thiết bị demo cục bộ
+/backend/.demo-sensors.json
+
+# Tài liệu thiết kế nội bộ: chỉ giữ trên máy
+/docs/design/
+/docs/FORESCATING.md
+/docs/report-tuan-6.md
+/docs/xiaozhi.h
+
+# Code tham khảo (Base), không thuộc dự án
+/datn-main/
+
+# Firmware: thư mục build PlatformIO và khóa bí mật (mẫu ở include/secrets.example.h)
+**/.pio/
+firmware/**/include/secrets.h

@@ -1,6 +1,6 @@
 # xiaozhi-bridge
 
-Cầu nối giữa chatbot Xiaozhi (dịch vụ có sẵn) và API trợ lý của backend. Thiết kế: [09-xiaozhi-mcp.md](../docs/design/09-xiaozhi-mcp.md).
+Cầu nối giữa chatbot Xiaozhi (dịch vụ có sẵn) và API trợ lý của backend. Thiết kế: 09-xiaozhi-mcp (tài liệu nội bộ).
 
 ```text
 Người dùng → Xiaozhi ⇄ (WebSocket MCP, bridge chủ động mở) ⇄ xiaozhi-bridge → HTTP + Bearer → /api/v1/assistant/* → DB

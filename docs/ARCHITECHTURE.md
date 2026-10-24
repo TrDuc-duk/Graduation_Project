@@ -4,7 +4,7 @@
 
 Hệ thống thu thập số liệu từ mạng cảm biến LoRa, lưu trữ, tính AQI (US EPA, từ PM2.5/PM10), dự báo AQI 3–72 giờ bằng model XGBoost đã train sẵn, hiển thị trên web (người dùng và quản trị). Có thêm kênh hỏi đáp bằng giọng nói qua chatbot Xiaozhi.
 
-Phần cứng và firmware giữ nguyên từ đồ án Base ([`Base.pdf`](Base.pdf), mã nguồn trong `base_code.zip`). Backend và frontend viết mới. Thiết kế chi tiết nằm trong [`docs/design/`](design/README.md).
+Phần cứng và firmware giữ nguyên từ đồ án Base ([`Base.pdf`](Base.pdf), mã nguồn trong `base_code.zip`). Backend và frontend viết mới. Thiết kế chi tiết là tài liệu nội bộ (`docs/design/`), không đưa lên repo.
 
 ---
 
@@ -156,13 +156,15 @@ Chạy trên một VPS mức trung bình (tham chiếu 2 vCPU / 4 GB RAM / 80 GB
 
 ### 6. Tài liệu chi tiết
 
+Tài liệu nội bộ, chỉ lưu trên máy tác giả (không có trong repo):
+
 | Tài liệu | Nội dung |
 |---|---|
-| [design/README.md](design/README.md) | Chỉ mục, sổ quyết định |
-| [design/01-danh-gia-kien-truc.md](design/01-danh-gia-kien-truc.md) | Hợp đồng firmware thực tế, ràng buộc ML, lý do các lựa chọn |
-| [design/backend_design.md](design/backend_design.md) | Ingest, dự báo, cảnh báo, API, UI flow, bảo mật, triển khai, lộ trình |
-| [design/database_design.md](design/database_design.md) | Schema DB đầy đủ: DDL, index, TimescaleDB, migration, vai trò DB |
-| [design/backend_modules.md](design/backend_modules.md) | 18 module backend, phụ thuộc, cấu trúc thư mục, thứ tự dev |
-| [design/frontend_design.md](design/frontend_design.md) | Cấu trúc frontend, tầng dữ liệu, i18n, quy ước hiển thị |
-| [design/09-xiaozhi-mcp.md](design/09-xiaozhi-mcp.md) | Tích hợp Xiaozhi |
-| [FORESCATING.md](FORESCATING.md) | Kết quả và giới hạn của model |
+| `design/README.md` | Chỉ mục, sổ quyết định |
+| `design/01-danh-gia-kien-truc.md` | Hợp đồng firmware thực tế, ràng buộc ML, lý do các lựa chọn |
+| `design/backend_design.md` | Ingest, dự báo, cảnh báo, API, UI flow, bảo mật, triển khai, lộ trình |
+| `design/database_design.md` | Schema DB đầy đủ: DDL, index, TimescaleDB, migration, vai trò DB |
+| `design/backend_modules.md` | 18 module backend, phụ thuộc, cấu trúc thư mục, thứ tự dev |
+| `design/frontend_design.md` | Cấu trúc frontend, tầng dữ liệu, i18n, quy ước hiển thị |
+| `design/09-xiaozhi-mcp.md` | Tích hợp Xiaozhi |
+| `FORESCATING.md` | Kết quả và giới hạn của model |
