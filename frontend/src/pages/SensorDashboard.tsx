@@ -355,15 +355,15 @@ function buildCharts({ readings, units }: NodeReadings): Record<"pm" | "gas" | "
   return {
     pm: [
       { name: "PM2.5", unit: units.pm25, color: "#1D4ED8", axis: 0, digits: 1, points: series("pm25") },
-      { name: "PM10", unit: units.pm10, color: "#0E7490", dashed: true, axis: 0, digits: 1, points: series("pm10") },
+      { name: "PM10", unit: units.pm10, color: "#0E7490", axis: 0, digits: 1, points: series("pm10") },
     ],
     gas: [
       { name: "eCO₂", unit: units.co2, color: "#7C3AED", axis: 0, digits: 0, points: series("co2") },
-      { name: "TVOC", unit: units.tvoc, color: "#C2410C", dashed: true, axis: 1, digits: 0, points: series("tvoc") },
+      { name: "TVOC", unit: units.tvoc, color: "#C2410C", axis: 1, digits: 0, points: series("tvoc") },
     ],
     climate: [
       { name: "Nhiệt độ", unit: units.temperature, color: "#DC2626", axis: 0, digits: 1, points: series("temperature") },
-      { name: "Độ ẩm", unit: units.humidity, color: "#0369A1", dashed: true, axis: 1, digits: 1, points: series("humidity") },
+      { name: "Độ ẩm", unit: units.humidity, color: "#0369A1", axis: 1, digits: 1, points: series("humidity") },
     ],
   };
 }

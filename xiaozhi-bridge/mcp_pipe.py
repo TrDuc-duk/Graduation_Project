@@ -101,6 +101,11 @@ class McpServer:
                     async for raw in ws:
                         for reply in await self._replies(raw):
                             await ws.send(json.dumps(reply, ensure_ascii=False))
+                            result = reply.get("result", {})
+                            if "tools" in result:
+                                log.info("Đã trả tools/list cho Xiaozhi: %s", ", ".join(t["name"] for t in result["tools"]))
+                            elif "protocolVersion" in result:
+                                log.info("Đã trả initialize cho Xiaozhi (%s)", result["protocolVersion"])
             except Exception as e:  # mất mạng, endpoint đóng kết nối, token sai…
                 log.warning("Mất kết nối MCP endpoint %s (%s); thử lại sau %d giây", host, type(e).__name__, backoff)
             await asyncio.sleep(backoff)

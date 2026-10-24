@@ -32,7 +32,7 @@ interface Metric {
   digits: number;
 }
 
-// Các chỉ số trên trang; màu khác nhau và có nét đứt cho chuỗi thứ hai của cùng biểu đồ
+// Các chỉ số trên trang; đường liền, chú giải và ký hiệu riêng cho từng chuỗi.
 const METRICS: Metric[] = [
   { key: "aqi", label: "AQI Mỹ", unit: () => "", color: "#64748B", digits: 0 },
   { key: "pm25", label: "PM2.5", unit: (r) => r.units.pm25, color: "#1D4ED8", digits: 1 },
@@ -154,15 +154,13 @@ export function HistoryPage() {
   const chartSeries = (keys: MetricKey[], axisOf: (k: MetricKey) => 0 | 1 = () => 0): ChartSeries[] =>
     visible
       .filter((m) => keys.includes(m.key))
-      .map((m, i) => ({
+      .map((m) => ({
         name: m.label,
         unit: m.unit(detail),
         color: m.color,
-        dashed: i > 0,
         axis: axisOf(m.key),
         digits: m.digits,
         points: series[m.key],
-        bar: m.key === "aqi" && hourly,
         colorOf: m.key === "aqi" ? (v: number) => aqiLevel(v)?.color : undefined,
       }));
   const charts = [

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-cd "/media/trungduc/New Volume/Graduation_Project/ml/ml_rf"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 PY=../ml_xgb/.venv/bin/python
 echo "=== TUNE $(date)"
 $PY -m rf.tune
