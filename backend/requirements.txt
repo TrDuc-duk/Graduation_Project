@@ -10,6 +10,9 @@ GeoAlchemy2==0.20.0
 tenacity==9.2.1
 limits==5.8.0
 APScheduler==3.11.3
+# SSE (backend_design 11.6) và gọi OpenWeatherMap (11.11)
+sse-starlette==3.5.1
+httpx==0.28.1
 # Cùng phiên bản với ml/ml_xgb/requirements.txt (src.aqi dùng numpy, pandas)
 numpy==2.5.3
 pandas==3.0.6

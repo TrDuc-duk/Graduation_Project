@@ -8,8 +8,8 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from app.core.db import get_sessionmaker
 from tests.conftest import alembic_config, truncate_all
 
-# Cột duy nhất được phép kiểu real (chỉ hiển thị) — tính tới migration hiện có
-ALLOWED_REAL = {("nodes", "observed_interval_iqr_ratio")}
+# Cột được phép kiểu real (chỉ hiển thị) — tính tới migration hiện có (database_design 13)
+ALLOWED_REAL = {("nodes", "observed_interval_iqr_ratio"), ("node_hourly", "coverage")}
 
 
 def test_upgrade_downgrade_upgrade(migrated):

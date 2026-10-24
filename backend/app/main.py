@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import include_routers
 from app.core import outbox
@@ -46,6 +47,14 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json" if docs else None,
     )
     register_error_handlers(app)
+    if get_settings().cors_origins:  # production cùng origin qua proxy nên không bật (backend_design 14.4)
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=get_settings().cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
     include_routers(app)
     return app
 

@@ -27,10 +27,21 @@ class Settings(BaseSettings):
     enable_dev_endpoints: bool = False
     # Token tĩnh quyền assistant:read cho xiaozhi-bridge; để trống thì không mở API trợ lý (09-xiaozhi-mcp)
     assistant_token: str = ""
+    # Ngôn ngữ khi request không gửi Accept-Language (backend_design 11.1)
+    default_language: Literal["vi", "en"] = "vi"
+    # OpenWeatherMap (backend_design 11.11): để trống key thì tắt thẻ thời tiết
+    weather_api_key: str = ""
+    weather_cache_ttl_s: int = 900
+    # Thư mục model, mỗi phiên bản một thư mục con (backend_design 8.1)
+    model_dir: str = "/models/xgb"
+    # Gốc URL công khai, dùng tạo đường dẫn trong thông báo
+    public_base_url: str = ""
+    # Origin được gọi API từ trình duyệt khác origin (chỉ dev, vd http://localhost:5173); production để trống
+    cors_origins: Annotated[list[str], NoDecode] = []
 
-    @field_validator("gateway_secrets", mode="before")
+    @field_validator("gateway_secrets", "cors_origins", mode="before")
     @classmethod
-    def split_secrets(cls, value: object) -> object:
+    def split_csv(cls, value: object) -> object:
         """Đổi chuỗi "a,b" trong .env thành danh sách ["a", "b"], bỏ phần tử rỗng."""
         if isinstance(value, str):
             return [s.strip() for s in value.split(",") if s.strip()]

@@ -31,6 +31,47 @@ def test_gateway_secrets_split_from_env_string():
     assert s.gateway_secrets == ["old-key", "super-secret-key"]
 
 
+def test_m2_settings_defaults_and_cors_split(monkeypatch):
+    """Biến mới của M2: mặc định theo backend_design 15.1; CORS_ORIGINS tách theo dấu phẩy."""
+    for key in ("WEATHER_API_KEY", "WEATHER_CACHE_TTL_S", "DEFAULT_LANGUAGE", "MODEL_DIR", "CORS_ORIGINS"):
+        monkeypatch.delenv(key, raising=False)
+    s = Settings(_env_file=None, database_url="x", provision_key="k")
+    assert (s.weather_api_key, s.weather_cache_ttl_s, s.default_language, s.model_dir, s.cors_origins) == (
+        "",
+        900,
+        "vi",
+        "/models/xgb",
+        [],
+    )
+    s = Settings(_env_file=None, database_url="x", provision_key="k", cors_origins="http://localhost:5173, ")
+    assert s.cors_origins == ["http://localhost:5173"]
+
+
+async def test_cors_middleware_only_when_configured(monkeypatch):
+    """Không đặt CORS_ORIGINS thì không có CORS (production cùng origin); đặt thì trả header cho origin đó."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.core.config import get_settings
+    from app.main import create_app
+
+    async def preflight(origins: str) -> dict:
+        monkeypatch.setenv("CORS_ORIGINS", origins)
+        get_settings.cache_clear()
+        try:
+            # ASGITransport không chạy lifespan nên không đụng DB
+            async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://test") as c:
+                r = await c.options(
+                    "/healthz",
+                    headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
+                )
+            return dict(r.headers)
+        finally:
+            get_settings.cache_clear()
+
+    assert "access-control-allow-origin" not in await preflight("")
+    assert (await preflight("http://localhost:5173"))["access-control-allow-origin"] == "http://localhost:5173"
+
+
 def test_scheduler_only_for_all_and_worker():
     base = {"database_url": "x", "provision_key": "k", "scheduler_enabled": True}
     assert Settings(**base, app_role="all").scheduler_active
