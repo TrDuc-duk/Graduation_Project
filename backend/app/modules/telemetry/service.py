@@ -55,7 +55,7 @@ async def find_matching_copies(
 
 
 async def mark_superseded(session: AsyncSession, keys: list[tuple[int, datetime]], at: datetime) -> None:
-    """Đánh dấu các bản bị thay. TODO(M2): xếp hàng tính lại giờ chứa các bản này."""
+    """Đánh dấu các bản bị thay (khóa gồm measured_at, nên bên gọi biết giờ nào cần tính lại)."""
     await repository.mark_superseded(session, keys, at)
 
 
@@ -104,3 +104,8 @@ async def samples_for_hours(
 ) -> list[Row]:
     """Số đo dùng để tổng hợp giờ trong (start, end]; `cutoff` = tính theo trạng thái tại thời điểm đó (as-of)."""
     return await repository.samples_for_hours(session, node_id, start, end, cutoff)
+
+
+async def nodes_with_samples(session: AsyncSession, start: datetime, end: datetime) -> list[int]:
+    """Node có số đo còn hiệu lực với measured_at trong (start, end] (để đóng/tổng hợp giờ)."""
+    return await repository.nodes_with_samples(session, start, end)

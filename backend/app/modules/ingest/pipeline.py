@@ -16,6 +16,7 @@ from app.core.db import run_in_transaction
 from app.core.locks import address_key, node_address_locks
 from app.modules.devices import service as devices
 from app.modules.devices.models import Gateway, Node
+from app.modules.hourly import service as hourly
 from app.modules.ingest import dedup
 from app.modules.ingest.normalize import Reading, normalize
 from app.modules.ingest.schemas import TelemetryIn
@@ -227,6 +228,9 @@ async def _process_node(
         await telemetry.mark_superseded(session, superseded_keys, ctx.received_at)
         result.superseded += len(superseded_keys)
     result.accepted += len(to_insert)
+    # Bản mới hoặc bản bị thay rơi vào giờ đã đóng → tính lại giờ đó (backend_design 7); giờ đang mở do rollup lo
+    changed_times = [r.measured_at for r in to_insert] + [measured_at for _, measured_at in superseded_keys]
+    await hourly.enqueue_closed_hours(session, node.id, changed_times, ctx.received_at)
 
     await devices.record_link(session, node.id, ctx.gateway.id, ctx.received_at, len(records))
     inserted = {r.seq for r in to_insert}  # bản trùng không được lưu nên không tính là đáng tin

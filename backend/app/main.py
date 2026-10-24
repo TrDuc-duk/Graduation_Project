@@ -13,6 +13,7 @@ from app.core.db import get_engine
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
 from app.core.scheduler import add_job, scheduler
+from app.modules.hourly.jobs import hourly_rollup
 from app.modules.ingest.jobs import interval_stats
 
 
@@ -20,6 +21,7 @@ def register_jobs() -> None:
     """Khai báo mọi job nền (backend_design 10). Chỉ gọi khi tiến trình được phép chạy job."""
     add_job("outbox_dispatcher", outbox.dispatch_once, log_runs=False, trigger="interval", seconds=5)
     add_job("interval_stats", interval_stats, trigger="interval", hours=1)
+    add_job("hourly_rollup", hourly_rollup, trigger="interval", minutes=5)
 
 
 @asynccontextmanager

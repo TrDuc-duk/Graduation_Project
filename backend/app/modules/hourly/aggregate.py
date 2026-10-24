@@ -130,6 +130,37 @@ def aggregate_hour(
     )
 
 
+def empty_hour(hour_end: datetime, interval_s: int | None) -> HourAggregate:
+    """Giờ đã đóng nay không còn mẫu nào (vd mọi bản đều bị thay): giữ dòng với số đếm 0 để không mất revision."""
+    expected = expected_samples(interval_s)
+    return HourAggregate(
+        hour_end=hour_end,
+        n_samples=0,
+        n_excluded=0,
+        n_time_estimated=0,
+        n_time_ambiguous=0,
+        expected_samples=expected,
+        coverage=0.0 if expected else None,
+        n_pm25=0,
+        n_pm10=0,
+        n_temperature=0,
+        n_humidity=0,
+        n_co2=0,
+        pm25_avg=None,
+        pm10_avg=None,
+        temperature_avg=None,
+        humidity_avg=None,
+        co2_avg=None,
+        tvoc_avg=None,
+        pm25_max=None,
+        pm10_max=None,
+        aqi=None,
+        aqi_pm25=None,
+        aqi_pm10=None,
+        qc_flags=0,
+    )
+
+
 def aggregate(samples: list[Sample], interval_s: int | None, min_samples: int) -> dict[datetime, HourAggregate]:
     """Chia mẫu theo nhãn giờ rồi tổng hợp từng giờ; trả {hour_end: kết quả} (giờ trống không có khóa)."""
     by_hour: dict[datetime, list[Sample]] = {}

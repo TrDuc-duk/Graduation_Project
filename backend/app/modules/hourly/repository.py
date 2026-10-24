@@ -22,6 +22,16 @@ async def get_hours(session: AsyncSession, node_id: int, start: datetime, end: d
     return list((await session.scalars(stmt)).all())
 
 
+async def get_hour(session: AsyncSession, node_id: int, hour_end: datetime) -> NodeHourly | None:
+    """Dòng giờ của node tại nhãn `hour_end` (nếu có)."""
+    return await session.get(NodeHourly, (node_id, hour_end), populate_existing=True)
+
+
+async def nodes_with_rows(session: AsyncSession, hour_end: datetime) -> list[int]:
+    """Node đã có dòng ở giờ `hour_end`."""
+    return list((await session.scalars(select(NodeHourly.node_id).where(NodeHourly.hour_end == hour_end))).all())
+
+
 async def upsert_hour(
     session: AsyncSession, node_id: int, agg: HourAggregate, *, is_closed: bool, revision: int, at: datetime
 ) -> None:
@@ -67,3 +77,27 @@ async def aqi_by_hour_of_day(session: AsyncSession, node_id: int, since: datetim
     )
     params = {"tz": LOCAL_TZ.key, "node_id": node_id, "since": since}
     return list((await session.execute(stmt, params)).all())
+
+
+async def enqueue(session: AsyncSession, node_id: int, hour_end: datetime) -> None:
+    """Xếp hàng tính lại (node, giờ); đã có trong hàng thì bỏ qua."""
+    await session.execute(
+        text("INSERT INTO hourly_recompute_queue (node_id, hour_end) VALUES (:n, :h) ON CONFLICT DO NOTHING"),
+        {"n": node_id, "h": hour_end},
+    )
+
+
+async def queued(session: AsyncSession, closable_until: datetime, limit: int) -> list[Row]:
+    """Các mục trong hàng đợi có giờ đã qua mốc đóng (`hour_end ≤ closable_until`), cũ trước."""
+    stmt = text(
+        "SELECT node_id, hour_end FROM hourly_recompute_queue WHERE hour_end <= :until "
+        "ORDER BY queued_at, node_id, hour_end LIMIT :n"
+    )
+    return list((await session.execute(stmt, {"until": closable_until, "n": limit})).all())
+
+
+async def dequeue(session: AsyncSession, node_id: int, hour_end: datetime) -> None:
+    """Bỏ (node, giờ) khỏi hàng đợi tính lại."""
+    await session.execute(
+        text("DELETE FROM hourly_recompute_queue WHERE node_id = :n AND hour_end = :h"), {"n": node_id, "h": hour_end}
+    )

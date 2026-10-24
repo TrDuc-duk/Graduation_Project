@@ -235,3 +235,13 @@ async def samples_for_hours(
         .order_by(Measurement.measured_at, Measurement.id)
     )
     return list((await session.execute(stmt)).all())
+
+
+async def nodes_with_samples(session: AsyncSession, start: datetime, end: datetime) -> list[int]:
+    """Node có số đo còn hiệu lực (kể cả bản bị loại) với measured_at trong (start, end]."""
+    stmt = (
+        select(Measurement.node_id)
+        .where(Measurement.measured_at > start, Measurement.measured_at <= end, Measurement.superseded_at.is_(None))
+        .distinct()
+    )
+    return list((await session.scalars(stmt)).all())
