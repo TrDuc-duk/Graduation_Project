@@ -23,6 +23,7 @@ from app.modules.stations.schemas import (
     StationDetailOut,
     StationsOut,
 )
+from app.modules.weather import service as weather
 
 PUBLIC_LIMIT_PER_MIN = 120  # backend_design 14.2: API công khai theo IP
 
@@ -138,6 +139,21 @@ async def profile(
     if items is None:
         raise AppError("STATION_NOT_FOUND", 404, t("errors.STATION_NOT_FOUND", lang, code=code))
     return {"station_id": code.strip().upper(), "days": days, "items": items}
+
+
+@router.get("/stations/{code}/weather")
+async def weather_of(code: Annotated[str, Path(max_length=16)], lang: Lang) -> dict:
+    """Thời tiết hiện tại tại tọa độ trạm (OpenWeatherMap), chỉ để hiển thị. Lỗi/chưa có key → 503 (web ẩn thẻ)."""
+    found = await run_in_transaction(lambda s: service.public_station(s, code, timeutil.now()))
+    if found is None:
+        raise AppError("STATION_NOT_FOUND", 404, t("errors.STATION_NOT_FOUND", lang, code=code))
+    try:
+        data = await weather.current(found.lat, found.lng, lang)
+    except weather.WeatherDisabled:
+        raise AppError("WEATHER_DISABLED", 503, t("errors.WEATHER_DISABLED", lang)) from None
+    except weather.WeatherUnavailable:
+        raise AppError("WEATHER_UNAVAILABLE", 503, t("errors.WEATHER_UNAVAILABLE", lang)) from None
+    return {**data, "observed_at": _iso(data["observed_at"])}
 
 
 @router.get("/stations/{code}", response_model=StationDetailOut)

@@ -17,6 +17,7 @@ from app.core.scheduler import add_job, scheduler
 from app.modules.hourly.jobs import hourly_rollup
 from app.modules.ingest.jobs import interval_stats
 from app.modules.pipeline.jobs import hourly_pipeline
+from app.modules.weather import service as weather
 
 
 def register_jobs() -> None:
@@ -39,6 +40,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
     if scheduler.running:
         scheduler.shutdown(wait=False)
+    await weather.close()
     await get_engine().dispose()
 
 

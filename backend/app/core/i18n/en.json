@@ -41,6 +41,8 @@
     "STATION_NOT_FOUND": "Station {code} was not found.",
     "INVALID_PARAMS": "Invalid parameters.",
     "RANGE_TOO_LARGE": "Time range is too long for resolution {resolution} (maximum {max_days} days).",
-    "RATE_LIMITED": "Too many requests, please try again later."
+    "RATE_LIMITED": "Too many requests, please try again later.",
+    "WEATHER_UNAVAILABLE": "Weather is temporarily unavailable.",
+    "WEATHER_DISABLED": "Weather is not enabled."
   }
 }

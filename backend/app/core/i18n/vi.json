@@ -41,6 +41,8 @@
     "STATION_NOT_FOUND": "Không tìm thấy trạm {code}.",
     "INVALID_PARAMS": "Tham số không hợp lệ.",
     "RANGE_TOO_LARGE": "Khoảng thời gian quá dài cho độ phân giải {resolution} (tối đa {max_days} ngày).",
-    "RATE_LIMITED": "Quá nhiều yêu cầu, vui lòng thử lại sau."
+    "RATE_LIMITED": "Quá nhiều yêu cầu, vui lòng thử lại sau.",
+    "WEATHER_UNAVAILABLE": "Tạm thời không lấy được thời tiết.",
+    "WEATHER_DISABLED": "Tính năng thời tiết chưa được bật."
   }
 }
