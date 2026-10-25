@@ -2,7 +2,14 @@
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+from app.core.i18n import pick_language, t
+
+# Nhóm API dùng dạng lỗi {"error": {...}} cho cả lỗi tham số (cổng thiết bị, trợ lý tự xử lý lỗi riêng)
+APP_ERROR_PREFIXES = ("/api/v1/public", "/api/v1/stream", "/api/v1/auth", "/api/v1/admin")
 
 
 class AppError(Exception):
@@ -48,6 +55,15 @@ def register_error_handlers(app: FastAPI) -> None:
     async def _app_error(_: Request, exc: AppError) -> JSONResponse:
         body = {"error": {"code": exc.code, "message": exc.message, "details": exc.details}}
         return JSONResponse(body, status_code=exc.http_status)
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        if not request.url.path.startswith(APP_ERROR_PREFIXES):
+            return await request_validation_exception_handler(request, exc)
+        lang = pick_language(request.query_params.get("lang"), request.headers.get("accept-language"))
+        details = {"fields": [{"loc": list(e["loc"]), "msg": e["msg"]} for e in exc.errors()]}
+        body = {"error": {"code": "INVALID_PARAMS", "message": t("errors.INVALID_PARAMS", lang), "details": details}}
+        return JSONResponse(jsonable_encoder(body), status_code=422)
 
     @app.exception_handler(DeviceError)
     async def _device_error(_: Request, exc: DeviceError) -> JSONResponse:

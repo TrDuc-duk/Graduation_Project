@@ -73,6 +73,11 @@ async def hourly_as_of(
     return list((await compute_hours(session, node, first, last, cutoff)).values())
 
 
+async def latest_closed_hour(session: AsyncSession, node_id: int, since: datetime) -> NodeHourly | None:
+    """Giờ đã đóng mới nhất của node có nhãn sau `since` (AQI giờ hiện hành); không có thì None."""
+    return await repository.latest_closed(session, node_id, since)
+
+
 async def series_hour(session: AsyncSession, node_id: int, start: datetime, end: datetime) -> list[NodeHourly]:
     """Các dòng giờ đã lưu có nhãn trong (start, end], cũ → mới (gồm cả giờ đang mở, chỉ để hiển thị)."""
     return await repository.get_hours(session, node_id, start, end)

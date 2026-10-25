@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from geoalchemy2 import WKTElement
+from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import settings_store
@@ -91,6 +92,16 @@ async def list_public_nodes(session: AsyncSession) -> list[Node]:
 async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int, tuple[float, float]]:
     """Tọa độ (vĩ độ, kinh độ) theo id node; node chưa được nhập vị trí thì không có trong kết quả."""
     return await repository.node_positions(session, node_ids)
+
+
+async def public_points(session: AsyncSession) -> list[Row]:
+    """Trạm công khai có tọa độ, kèm lat/lng và geometry GeoJSON (cho API công khai, bản đồ)."""
+    return await repository.public_points(session)
+
+
+async def nearest_public(session: AsyncSession, lat: float, lng: float, limit: int) -> list[Row]:
+    """Trạm công khai có tọa độ gần nhất, kèm khoảng cách mét (geography)."""
+    return await repository.nearest_public(session, lat, lng, limit)
 
 
 async def get_node(session: AsyncSession, node_id: int) -> Node | None:

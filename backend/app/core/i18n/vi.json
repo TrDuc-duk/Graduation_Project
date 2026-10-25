@@ -1,0 +1,46 @@
+{
+  "aqi": {
+    "good": {
+      "label": "Tốt",
+      "advice": "Không khí trong lành, thích hợp cho mọi hoạt động ngoài trời.",
+      "alert_title": "Không khí tốt",
+      "alert_message": "AQI giờ ở mức tốt. Thích hợp cho mọi hoạt động ngoài trời."
+    },
+    "moderate": {
+      "label": "Trung bình",
+      "advice": "Người nhạy cảm nên giảm vận động mạnh ngoài trời.",
+      "alert_title": "Không khí chấp nhận được",
+      "alert_message": "AQI giờ ở mức trung bình. Người nhạy cảm nên giảm vận động mạnh ngoài trời."
+    },
+    "usg": {
+      "label": "Không tốt cho nhóm nhạy cảm",
+      "advice": "Nhóm nhạy cảm nên hạn chế ra ngoài và đeo khẩu trang; mọi người nên giảm vận động mạnh ngoài trời.",
+      "alert_title": "Ảnh hưởng nhóm nhạy cảm",
+      "alert_message": "AQI giờ không tốt cho nhóm nhạy cảm. Trẻ em, người già và người có bệnh hô hấp nên hạn chế ra ngoài."
+    },
+    "unhealthy": {
+      "label": "Không lành mạnh",
+      "advice": "Mọi người nên tránh vận động mạnh ngoài trời, đóng cửa sổ và đeo khẩu trang lọc bụi khi ra ngoài.",
+      "alert_title": "Không khí kém",
+      "alert_message": "AQI giờ ở mức không lành mạnh. Hạn chế ở ngoài trời."
+    },
+    "very_unhealthy": {
+      "label": "Rất không tốt",
+      "advice": "Mọi người nên tránh hoạt động ngoài trời, đóng kín cửa sổ và bật máy lọc không khí nếu có.",
+      "alert_title": "Không khí rất kém",
+      "alert_message": "AQI giờ ở mức rất không tốt. Tránh hoạt động ngoài trời."
+    },
+    "hazardous": {
+      "label": "Nguy hiểm",
+      "advice": "Mọi người nên ở trong nhà, tránh mọi hoạt động ngoài trời.",
+      "alert_title": "Ô nhiễm nguy hiểm",
+      "alert_message": "AQI giờ ở mức nguy hiểm. Ở trong nhà và đóng kín cửa."
+    }
+  },
+  "errors": {
+    "STATION_NOT_FOUND": "Không tìm thấy trạm {code}.",
+    "INVALID_PARAMS": "Tham số không hợp lệ.",
+    "RANGE_TOO_LARGE": "Khoảng thời gian quá dài cho độ phân giải {resolution} (tối đa {max_days} ngày).",
+    "RATE_LIMITED": "Quá nhiều yêu cầu, vui lòng thử lại sau."
+  }
+}

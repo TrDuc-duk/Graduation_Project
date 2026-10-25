@@ -1,9 +1,11 @@
 """Nghiệp vụ "trạm" dùng chung cho API trợ lý và API web (backend_modules: stations).
 
-Trạm = node `active` và `is_public`, gọi bằng `station_code` (ST001). Module chỉ đọc, không sở hữu bảng:
-lấy node qua `devices`, số đo qua `telemetry`. Cùng trạm, cùng thời điểm thì mọi API trả cùng con số.
+Trạm = node `active` và `is_public`, gọi bằng `station_code` (ST001); trang công khai còn cần tọa độ (A3).
+Module chỉ đọc, không sở hữu bảng: node qua `devices`, số đo qua `telemetry`, AQI giờ qua `hourly`.
+Cùng trạm, cùng thời điểm thì mọi API trả cùng con số.
 """
 
+import json
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -12,10 +14,23 @@ from statistics import fmean
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import settings_store
+from app.core.aqi_scale import level_of
 from app.modules.devices import service as devices
 from app.modules.devices.models import Node
+from app.modules.hourly import service as hourly
+from app.modules.hourly.models import NodeHourly
+from app.modules.stations.schemas import (
+    FreshnessOut,
+    HourlyOut,
+    LatestOut,
+    MostPolluted,
+    OverviewOut,
+    StationDetailOut,
+    StationOut,
+)
 from app.modules.telemetry import service as telemetry
 from app.modules.telemetry.models import Measurement
+from app.modules.telemetry.qc import QcFlag
 
 DEFAULT_REF = "default"  # người dùng không nêu trạm: dùng trạm mặc định (default_station_id)
 
@@ -215,3 +230,154 @@ def trend(points: list[tuple[datetime, float]]) -> str:
     if diff <= -TREND_THRESHOLD:
         return DECREASING
     return STABLE
+
+
+# ---------- API công khai /public/* (backend_design 11.3) ----------
+
+HOURLY_FRESH = timedelta(hours=2)  # AQI giờ "hiện hành" = giờ đã đóng gần nhất, không cũ hơn 2 giờ
+
+
+@dataclass(frozen=True)
+class PublicStation:
+    """Trạm công khai (active, is_public, có tọa độ) kèm số đo tin cậy mới nhất, độ mới và AQI giờ hiện hành."""
+
+    node: Node
+    lat: float
+    lng: float
+    latest: Measurement | None
+    freshness: Freshness
+    hourly: NodeHourly | None
+
+
+async def public_stations(session: AsyncSession, now: datetime) -> list[PublicStation]:
+    """Mọi trạm công khai có tọa độ, theo mã trạm. Trạm chưa có tọa độ không hiện trên trang công khai (A3)."""
+    return [await _public(session, r.Node, r.lat, r.lng, now) for r in await devices.public_points(session)]
+
+
+async def public_station(session: AsyncSession, code: str, now: datetime) -> PublicStation | None:
+    """Một trạm công khai theo mã (không phân biệt hoa thường); không có hoặc không công khai → None."""
+    code = code.strip().upper()
+    row = next((r for r in await devices.public_points(session) if r.Node.station_code == code), None)
+    return await _public(session, row.Node, row.lat, row.lng, now) if row else None
+
+
+async def nearest(
+    session: AsyncSession, lat: float, lng: float, limit: int, now: datetime
+) -> list[tuple[PublicStation, float]]:
+    """Trạm công khai gần (lat, lng) nhất kèm khoảng cách mét."""
+    rows = await devices.nearest_public(session, lat, lng, limit)
+    return [(await _public(session, r.Node, r.lat, r.lng, now), r.distance_m) for r in rows]
+
+
+async def geojson(session: AsyncSession, now: datetime) -> dict:
+    """Trạm công khai dạng GeoJSON FeatureCollection; geometry do PostGIS dựng (`ST_AsGeoJSON`)."""
+    features = []
+    for r in await devices.public_points(session):
+        props = to_station_out(await _public(session, r.Node, r.lat, r.lng, now), now).model_dump(
+            mode="json", exclude={"latitude", "longitude"}
+        )
+        features.append(
+            {"type": "Feature", "id": r.Node.station_code, "geometry": json.loads(r.geojson), "properties": props}
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
+async def overview(session: AsyncSession, now: datetime) -> OverviewOut:
+    """Tổng quan trang chủ: số trạm, số trạm online, AQI giờ trung bình, trạm ô nhiễm nhất, trạm mặc định."""
+    stations = await public_stations(session, now)
+    with_aqi = [s for s in stations if s.hourly is not None and s.hourly.aqi is not None]
+    worst = max(with_aqi, key=lambda s: s.hourly.aqi, default=None)
+    default = await settings_store.get("default_station_id")
+    public_codes = {s.node.station_code for s in stations}
+    return OverviewOut(
+        n_stations=len(stations),
+        n_online=sum(1 for s in stations if not s.freshness.is_stale),
+        aqi_avg=round(fmean(s.hourly.aqi for s in with_aqi)) if with_aqi else None,
+        most_polluted=MostPolluted(
+            id=worst.node.station_code, name=worst.node.name, aqi=worst.hourly.aqi, level=level_of(worst.hourly.aqi).key
+        )
+        if worst
+        else None,
+        last_updated_at=max((s.latest.measured_at for s in stations if s.latest), default=None),
+        default_station_id=str(default).upper() if default and str(default).upper() in public_codes else None,
+    )
+
+
+def to_station_out(s: PublicStation, now: datetime) -> StationOut:
+    """Chuyển trạm sang dạng response công khai (làm tròn, không có trường nhạy cảm)."""
+    return StationOut(**_station_fields(s, now))
+
+
+def to_detail_out(s: PublicStation, now: datetime) -> StationDetailOut:
+    """Chi tiết trạm: thêm độ mới dữ liệu và đơn vị."""
+    f = s.freshness
+    return StationDetailOut(
+        **_station_fields(s, now),
+        freshness=FreshnessOut(
+            last_received_at=f.last_received_at, age_s=f.age_s, stale_after_s=f.stale_after_s, is_stale=f.is_stale
+        ),
+    )
+
+
+async def _public(session: AsyncSession, node: Node, lat: float, lng: float, now: datetime) -> PublicStation:
+    """Ghép số đo tin cậy mới nhất, độ mới và AQI giờ hiện hành của một trạm."""
+    latest = await latest_trusted(session, node.id)
+    return PublicStation(
+        node=node,
+        lat=lat,
+        lng=lng,
+        latest=latest,
+        freshness=await freshness(node, latest, now),
+        hourly=await hourly.latest_closed_hour(session, node.id, now - HOURLY_FRESH),
+    )
+
+
+def _station_fields(s: PublicStation, now: datetime) -> dict:
+    """Các trường chung của danh sách và chi tiết trạm."""
+    n, m, h = s.node, s.latest, s.hourly
+    return {
+        "id": n.station_code,
+        "name": n.name,
+        "district": n.district,
+        "latitude": s.lat,
+        "longitude": s.lng,
+        "environment": n.environment,
+        "is_simulated": n.is_simulated,
+        "online": not s.freshness.is_stale,
+        "latest": LatestOut(
+            measured_at=m.measured_at,
+            time_estimated=bool(m.qc_flags & QcFlag.TIME_ESTIMATED),
+            age_minutes=max(0, int((now - m.measured_at).total_seconds() // 60)),
+            aqi_instant=m.aqi_instant,
+            pm25=_r(m.pm25),
+            pm10=_r(m.pm10),
+            temperature=_r(m.temperature),
+            humidity=_r(m.humidity),
+            co2=m.co2,
+            tvoc=m.tvoc,
+        )
+        if m
+        else None,
+        "hourly": HourlyOut(
+            hour_end=h.hour_end,
+            aqi=h.aqi,
+            level=lv.key if (lv := level_of(h.aqi)) else None,
+            dominant=_dominant(h),
+            n_samples=h.n_samples,
+            coverage=None if h.coverage is None else round(h.coverage, 2),
+        )
+        if h
+        else None,
+    }
+
+
+def _dominant(h: NodeHourly) -> str | None:
+    """Chất quyết định AQI giờ: chỉ số phụ lớn hơn (bằng nhau thì PM2.5)."""
+    if h.aqi_pm25 is None and h.aqi_pm10 is None:
+        return None
+    return "pm10" if (h.aqi_pm10 or -1) > (h.aqi_pm25 or -1) else "pm25"
+
+
+def _r(value: float | None) -> float | None:
+    """Làm tròn 1 chữ số thập phân, giữ null."""
+    return None if value is None else round(value, 1)

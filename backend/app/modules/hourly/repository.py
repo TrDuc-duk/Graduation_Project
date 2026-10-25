@@ -22,6 +22,17 @@ async def get_hours(session: AsyncSession, node_id: int, start: datetime, end: d
     return list((await session.scalars(stmt)).all())
 
 
+async def latest_closed(session: AsyncSession, node_id: int, since: datetime) -> NodeHourly | None:
+    """Dòng giờ đã đóng mới nhất của node có nhãn sau `since`."""
+    stmt = (
+        select(NodeHourly)
+        .where(NodeHourly.node_id == node_id, NodeHourly.is_closed, NodeHourly.hour_end > since)
+        .order_by(NodeHourly.hour_end.desc())
+        .limit(1)
+    )
+    return (await session.scalars(stmt)).one_or_none()
+
+
 async def get_hour(session: AsyncSession, node_id: int, hour_end: datetime) -> NodeHourly | None:
     """Dòng giờ của node tại nhãn `hour_end` (nếu có)."""
     return await session.get(NodeHourly, (node_id, hour_end), populate_existing=True)

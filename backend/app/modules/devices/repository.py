@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import func, select, text
+from sqlalchemy import Row, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,6 +51,38 @@ async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int
         Node.id.in_(node_ids), Node.geom.is_not(None)
     )
     return {node_id: (lat, lng) for node_id, lat, lng in (await session.execute(stmt)).all()}
+
+
+async def public_points(session: AsyncSession) -> list[Row]:
+    """Trạm công khai có tọa độ (active, is_public, geom khác NULL): (Node, lat, lng, geometry GeoJSON)."""
+    stmt = (
+        select(
+            Node,
+            func.ST_Y(Node.geom).label("lat"),
+            func.ST_X(Node.geom).label("lng"),
+            func.ST_AsGeoJSON(Node.geom).label("geojson"),
+        )
+        .where(Node.status == "active", Node.is_public.is_(True), Node.geom.is_not(None))
+        .order_by(Node.station_code)
+    )
+    return list((await session.execute(stmt)).all())
+
+
+async def nearest_public(session: AsyncSession, lat: float, lng: float, limit: int) -> list[Row]:
+    """Trạm công khai có tọa độ gần điểm (lat, lng) nhất: (Node, lat, lng, distance_m).
+
+    Sắp xếp và khoảng cách cùng một công thức `ST_Distance` trên geography (mét), không dùng `<->` trên geometry 4326
+    vì nó xếp theo độ (backend_design 3.2, R35).
+    """
+    point = func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326)
+    distance = func.ST_Distance(func.Geography(Node.geom), func.Geography(point))
+    stmt = (
+        select(Node, func.ST_Y(Node.geom).label("lat"), func.ST_X(Node.geom).label("lng"), distance.label("distance_m"))
+        .where(Node.status == "active", Node.is_public.is_(True), Node.geom.is_not(None))
+        .order_by(distance, Node.station_code)
+        .limit(limit)
+    )
+    return list((await session.execute(stmt)).all())
 
 
 async def get_node(session: AsyncSession, node_id: int) -> Node | None:

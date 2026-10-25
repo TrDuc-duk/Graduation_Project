@@ -50,3 +50,8 @@ def floor_hour(t: datetime) -> datetime:
 def to_local(t: datetime) -> datetime:
     """Đổi thời điểm UTC sang giờ Việt Nam để hiển thị."""
     return t.astimezone(LOCAL_TZ)
+
+
+def iso_local(t: datetime) -> str:
+    """Chuỗi ISO 8601 giờ Việt Nam, tới giây: 2026-10-04T14:31:10+07:00 (quy ước API, backend_design 11.1)."""
+    return to_local(t).replace(microsecond=0).isoformat()

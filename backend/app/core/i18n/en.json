@@ -1,0 +1,46 @@
+{
+  "aqi": {
+    "good": {
+      "label": "Good",
+      "advice": "Air quality is satisfactory; enjoy outdoor activities.",
+      "alert_title": "Good air quality",
+      "alert_message": "The hourly AQI is good. Suitable for all outdoor activities."
+    },
+    "moderate": {
+      "label": "Moderate",
+      "advice": "Sensitive people should reduce strenuous outdoor activity.",
+      "alert_title": "Acceptable air quality",
+      "alert_message": "The hourly AQI is moderate. Sensitive people should reduce strenuous outdoor activity."
+    },
+    "usg": {
+      "label": "Unhealthy for Sensitive Groups",
+      "advice": "Sensitive groups should limit time outdoors and wear a mask; everyone should reduce strenuous outdoor activity.",
+      "alert_title": "Sensitive groups affected",
+      "alert_message": "The hourly AQI is unhealthy for sensitive groups. Children, older adults and people with respiratory disease should limit time outdoors."
+    },
+    "unhealthy": {
+      "label": "Unhealthy",
+      "advice": "Everyone should avoid strenuous outdoor activity, close windows and wear a particle-filtering mask outdoors.",
+      "alert_title": "Poor air quality",
+      "alert_message": "The hourly AQI is unhealthy. Limit time outdoors."
+    },
+    "very_unhealthy": {
+      "label": "Very Unhealthy",
+      "advice": "Everyone should avoid outdoor activities, keep windows closed and run an air purifier if available.",
+      "alert_title": "Very poor air quality",
+      "alert_message": "The hourly AQI is very unhealthy. Avoid outdoor activities."
+    },
+    "hazardous": {
+      "label": "Hazardous",
+      "advice": "Everyone should stay indoors and avoid all outdoor activities.",
+      "alert_title": "Hazardous pollution",
+      "alert_message": "The hourly AQI is hazardous. Stay indoors and keep windows closed."
+    }
+  },
+  "errors": {
+    "STATION_NOT_FOUND": "Station {code} was not found.",
+    "INVALID_PARAMS": "Invalid parameters.",
+    "RANGE_TOO_LARGE": "Time range is too long for resolution {resolution} (maximum {max_days} days).",
+    "RATE_LIMITED": "Too many requests, please try again later."
+  }
+}

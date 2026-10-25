@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.modules.assistant.router import router as assistant_router
 from app.modules.dev.router import router as dev_router
 from app.modules.ingest.router import router as device_router
+from app.modules.stations.router import router as public_router
 from app.modules.system.router import router as system_router
 
 API_PREFIX = "/api/v1"
@@ -19,6 +20,7 @@ def include_routers(app: FastAPI) -> None:
     settings = get_settings()
     app.include_router(system_router)
     app.include_router(device_router, prefix=API_PREFIX)
+    app.include_router(public_router, prefix=API_PREFIX)
     if settings.enable_dev_endpoints:
         app.include_router(dev_router, prefix=API_PREFIX)
     if settings.assistant_token:
