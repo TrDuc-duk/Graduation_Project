@@ -74,6 +74,12 @@ async def scheduled_for(t: datetime) -> datetime:
     return t + timedelta(seconds=grace) + PUBLISH_DELAY
 
 
+async def hour_issue_kind(t: datetime, now: datetime) -> str:
+    """Loại phát hành của giờ t khi chạy lúc `now` (on_time/late/catchup) cho `hour_pipeline.forecast_kind`."""
+    late_after = await settings_store.get("forecast_late_after_s")
+    return (await _issue_kind(t, now, await scheduled_for(t), "schedule", late_after))[0]
+
+
 async def run_hour(t: datetime, now: datetime) -> dict:
     """Bước 4 cho giờ t: dự báo mọi node `active` + `forecast_enabled`. Một node lỗi không chặn node khác.
 

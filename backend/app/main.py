@@ -15,6 +15,7 @@ from app.core.db import get_engine
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
 from app.core.scheduler import add_job, scheduler
+from app.modules.forecast import handlers as forecast_handlers
 from app.modules.hourly.jobs import hourly_rollup
 from app.modules.ingest.jobs import interval_stats
 from app.modules.mlruntime.registry import registry
@@ -22,6 +23,9 @@ from app.modules.pipeline.jobs import hourly_pipeline
 from app.modules.weather import service as weather
 
 log = logging.getLogger(__name__)
+
+# Handler outbox phải có trước khi dispatcher chạy: sự kiện không có handler bị đánh dấu done
+forecast_handlers.register()
 
 
 def register_jobs() -> None:

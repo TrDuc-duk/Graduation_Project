@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import pytest
+
+MODELS = Path(__file__).resolve().parents[3] / "models" / "xgb"  # bundle tạo bằng scripts.prepare_model_bundle
 
 
 @pytest.fixture(autouse=True)
@@ -28,3 +32,17 @@ async def live_server(db):
     yield f"http://127.0.0.1:{port}"
     server.should_exit = True
     await asyncio.wait_for(task, 5)
+
+
+@pytest.fixture
+async def model(db, monkeypatch):
+    """Model v1-no_fill active trong registry dùng chung của tiến trình; dọn trạng thái nạp sau test."""
+    from app.core.config import get_settings
+    from app.modules.mlruntime.registry import registry
+
+    monkeypatch.setenv("MODEL_DIR", str(MODELS))
+    get_settings.cache_clear()
+    await registry.rescan()
+    yield registry.current()
+    registry._loaded = None
+    get_settings.cache_clear()

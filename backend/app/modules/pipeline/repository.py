@@ -38,12 +38,14 @@ async def unfinished(
     return list((await session.scalars(stmt)).all())
 
 
-async def mark_step_done(session: AsyncSession, hour_end: datetime, column: str, at: datetime) -> None:
-    """Ghi bước `column` của giờ đã xong; xóa lỗi cũ."""
+async def mark_step_done(
+    session: AsyncSession, hour_end: datetime, column: str, at: datetime, extra: dict | None = None
+) -> None:
+    """Ghi bước `column` của giờ đã xong (kèm cột phụ như `forecast_kind`); xóa lỗi cũ."""
     await session.execute(
         update(HourPipeline)
         .where(HourPipeline.hour_end == hour_end)
-        .values({column: at, "last_error": None, "updated_at": func.now()})
+        .values({column: at, "last_error": None, "updated_at": func.now(), **(extra or {})})
     )
 
 

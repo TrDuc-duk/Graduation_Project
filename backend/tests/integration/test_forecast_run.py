@@ -7,14 +7,12 @@ UTC ↔ Việt Nam), chạy bước dự báo, so với `src.predict.predict` tr
 import asyncio
 import time
 from datetime import UTC, timedelta
-from pathlib import Path
 
 import pandas as pd
 import pytest
 from src.data_loading import load_raw_dataset
 from src.predict import predict as ml_predict
 
-from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.core.timeutil import LOCAL_TZ
 from app.modules.forecast import service
@@ -22,10 +20,9 @@ from app.modules.hourly import repository as hourly_repo
 from app.modules.hourly.aggregate import HourAggregate
 from app.modules.mlruntime import adapter
 from app.modules.mlruntime.registry import registry
+from tests.integration.conftest import MODELS
 from tests.integration.helpers import add_gateway, add_node, execute, rows, scalar
 
-REPO = Path(__file__).resolve().parents[3]
-MODELS = REPO / "models" / "xgb"
 T_LOCAL = pd.Timestamp("2026-09-22 23:00")  # giờ cuối của dataset
 T = T_LOCAL.tz_localize(LOCAL_TZ).tz_convert(UTC).to_pydatetime()  # 16:00 UTC
 NOW = T + timedelta(minutes=5)  # phát hành đúng hạn (scheduled_for = t + 3' + 2')
@@ -41,17 +38,6 @@ def dataset() -> pd.DataFrame:
     if _DATASET is None:
         _DATASET = load_raw_dataset()
     return _DATASET
-
-
-@pytest.fixture
-async def model(db, monkeypatch):
-    """Model v1-no_fill active (registry dùng chung của tiến trình); dọn trạng thái nạp sau test."""
-    monkeypatch.setenv("MODEL_DIR", str(MODELS))
-    get_settings.cache_clear()
-    await registry.rescan()
-    yield registry.current()
-    registry._loaded = None
-    get_settings.cache_clear()
 
 
 @pytest.fixture
