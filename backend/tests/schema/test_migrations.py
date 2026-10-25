@@ -9,7 +9,11 @@ from app.core.db import get_sessionmaker
 from tests.conftest import alembic_config, truncate_all
 
 # Cột được phép kiểu real (chỉ hiển thị) — tính tới migration hiện có (database_design 13)
-ALLOWED_REAL = {("nodes", "observed_interval_iqr_ratio"), ("node_hourly", "coverage")}
+ALLOWED_REAL = {
+    ("nodes", "observed_interval_iqr_ratio"),
+    ("node_hourly", "coverage"),
+    ("forecast_runs", "input_t_coverage"),
+}
 
 
 def test_upgrade_downgrade_upgrade(migrated):
@@ -45,7 +49,7 @@ def test_hypertables_and_policies(migrated):
                 "WHERE hypertable_name IS NOT NULL"
             )
         ).all()
-    assert hypertables == {"measurements", "ingest_batches"}
+    assert hypertables == {"measurements", "ingest_batches", "forecasts", "forecast_inputs", "forecast_input_history"}
     policies = {(j.hypertable_name, j.proc_name): j.config for j in jobs}
     assert policies[("measurements", "policy_compression")]["compress_after"] == "14 days"
     assert policies[("measurements", "policy_retention")]["drop_after"] == "90 days"
