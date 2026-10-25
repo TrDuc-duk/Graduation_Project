@@ -53,6 +53,12 @@ async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int
     return {node_id: (lat, lng) for node_id, lat, lng in (await session.execute(stmt)).all()}
 
 
+async def forecast_nodes(session: AsyncSession) -> list[Node]:
+    """Node được dự báo: đang `active` và bật `forecast_enabled` (backend_design 8.4), theo id."""
+    stmt = select(Node).where(Node.status == "active", Node.forecast_enabled.is_(True)).order_by(Node.id)
+    return list((await session.scalars(stmt)).all())
+
+
 async def public_points(session: AsyncSession) -> list[Row]:
     """Trạm công khai có tọa độ (active, is_public, geom khác NULL): (Node, lat, lng, geometry GeoJSON)."""
     stmt = (

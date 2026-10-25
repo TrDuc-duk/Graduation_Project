@@ -9,6 +9,7 @@ from app.core import events, outbox, settings_store
 from app.core.aqi_scale import level_of
 from app.core.db import run_in_transaction
 from app.core.locks import address_key, node_address_locks
+from app.core.timeutil import floor_hour
 from app.modules.devices import service as devices
 from app.modules.devices.models import Node
 from app.modules.hourly import repository
@@ -161,6 +162,12 @@ async def _write_hour(session: AsyncSession, node_id: int, hour_end: datetime, n
     if close:
         await _notify_hourly(session, node, agg)
     return True
+
+
+async def latest_closable_hour(now: datetime) -> datetime:
+    """Giờ `h` mới nhất đã qua mốc đóng: now ≥ h + hour_close_grace_s ("giờ đóng mới nhất", backend_design 8.4)."""
+    grace = await settings_store.get("hour_close_grace_s")
+    return floor_hour(now - timedelta(seconds=grace))
 
 
 async def is_closable(hour_end: datetime, now: datetime) -> bool:

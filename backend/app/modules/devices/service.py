@@ -94,6 +94,11 @@ async def node_positions(session: AsyncSession, node_ids: list[int]) -> dict[int
     return await repository.node_positions(session, node_ids)
 
 
+async def forecast_nodes(session: AsyncSession) -> list[Node]:
+    """Node đủ điều kiện dự báo: active và bật dự báo."""
+    return await repository.forecast_nodes(session)
+
+
 async def public_points(session: AsyncSession) -> list[Row]:
     """Trạm công khai có tọa độ, kèm lat/lng và geometry GeoJSON (cho API công khai, bản đồ)."""
     return await repository.public_points(session)

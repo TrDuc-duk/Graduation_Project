@@ -207,7 +207,10 @@ class Registry:
             if active is None:
                 self._loaded = None
                 return None
-            if self._loaded and self._loaded.bundle_sha256 == active.bundle_sha256:
+            if self._loaded and (self._loaded.model_id, self._loaded.bundle_sha256) == (
+                active.id,
+                active.bundle_sha256,
+            ):
                 return self._loaded
             path = Path(get_settings().model_dir) / active.dir_name
             try:

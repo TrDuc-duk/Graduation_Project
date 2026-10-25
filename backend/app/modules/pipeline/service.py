@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import settings_store
 from app.core.db import run_in_transaction
 from app.core.locks import pipeline_lock
 from app.core.timeutil import floor_hour
@@ -42,18 +41,12 @@ def done_columns() -> tuple[str, ...]:
     return tuple(column for column, _ in STEPS)
 
 
-async def latest_closable_hour(now: datetime) -> datetime:
-    """Giờ `h` mới nhất đã qua mốc đóng: now ≥ h + hour_close_grace_s."""
-    grace = await settings_store.get("hour_close_grace_s")
-    return floor_hour(now - timedelta(seconds=grace))
-
-
 async def run(now: datetime) -> dict:
     """Một lượt đường ống, giữ khóa (3, 0). Dừng ở giờ đầu tiên có bước lỗi (giờ sau phải chờ, giữ thứ tự)."""
     async with pipeline_lock() as got:
         if not got:
             return {"skipped": True}
-        latest = await latest_closable_hour(now)
+        latest = await hourly.latest_closable_hour(now)
         since = floor_hour(now - RETENTION)
         await run_in_transaction(lambda s: _add_new_hours(s, latest, since))
         rows = await run_in_transaction(
