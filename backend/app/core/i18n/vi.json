@@ -44,6 +44,15 @@
     "RATE_LIMITED": "Quá nhiều yêu cầu, vui lòng thử lại sau.",
     "WEATHER_UNAVAILABLE": "Tạm thời không lấy được thời tiết.",
     "WEATHER_DISABLED": "Tính năng thời tiết chưa được bật.",
-    "SSE_LIMIT": "Quá nhiều kết nối realtime, cập nhật realtime tạm tắt."
+    "SSE_LIMIT": "Quá nhiều kết nối realtime, cập nhật realtime tạm tắt.",
+    "INVALID_HORIZONS": "Mốc dự báo phải là bội số của 3 trong khoảng 3–72 giờ, ví dụ 3,6,12,24."
+  },
+  "forecast": {
+    "stale": "Dự báo từ {age} giờ trước.",
+    "stale_insufficient": "Dự báo từ {age} giờ trước; lần cập nhật gần nhất thiếu dữ liệu.",
+    "insufficient_history": "Trạm cần {required} giờ dữ liệu liên tục để dự báo, còn khoảng {eta} giờ nữa.",
+    "no_data": "Trạm chưa có dữ liệu để dự báo.",
+    "error": "Dự báo tạm thời chưa cập nhật được.",
+    "unavailable": "Chưa có dự báo cho trạm này."
   }
 }

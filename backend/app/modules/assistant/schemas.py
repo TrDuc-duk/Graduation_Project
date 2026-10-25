@@ -93,13 +93,37 @@ class SummaryOut(BaseModel):
     summary_vi: str
 
 
+class ForecastItemOut(BaseModel):
+    """Một mốc dự báo; mốc độ tin cậy thấp chỉ đọc là xu hướng."""
+
+    horizon_h: int
+    target_time: datetime  # giờ đích (nhãn h = cửa sổ (h−1, h])
+    aqi: int
+    level: str | None
+    level_label: str | None
+    confidence: Literal["high", "medium", "low"]
+    typical_error: float | None  # sai số tham khảo (MAE), không phải khoảng tin cậy
+
+
+class ForecastBodyOut(BaseModel):
+    """Dự báo đã lưu đang được dùng."""
+
+    model_version: str
+    input_hour: datetime
+    issued_at: datetime  # thời điểm tính dự báo
+    issue_kind: str
+    items: list[ForecastItemOut]
+
+
 class ForecastOut(BaseModel):
-    """Kết quả get_forecast. Chưa có dự báo thì `forecast` null kèm trạng thái và lý do (không bịa số)."""
+    """Kết quả get_forecast: dự báo đã tính sẵn (không chạy model khi hỏi). Không có dự báo dùng được thì `forecast`
+    null kèm trạng thái và lý do (không bịa số). Cùng nguồn với /public/stations/{code}/forecast."""
 
     ok: Literal[True] = True
     station: StationRef
-    status: Literal["unavailable"]
+    status: Literal["ok", "stale", "insufficient_history", "no_data", "error", "unavailable"]
     horizons: list[int]
-    forecast: None = None
-    message_vi: str
+    age_hours: int | None
+    forecast: ForecastBodyOut | None
+    message_vi: str | None
     summary_vi: str

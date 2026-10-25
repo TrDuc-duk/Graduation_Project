@@ -58,6 +58,11 @@ async def test_bridge_tools_against_real_backend(db, clock, tools, live_server):
     summary = await call(tools.get_history_summary, {"station": "ST001", "hours": 6})
     assert summary["ok"] is True and summary["n_samples"] == 1
 
+    fc = await call(tools.get_forecast, {"station": "ST001", "horizons": [3, 6]})
+    async with httpx.AsyncClient() as http:
+        public_fc = (await http.get(f"{live_server}/api/v1/public/stations/ST001/forecast")).json()
+    assert fc["ok"] is True and fc["status"] == public_fc["status"] == "unavailable" and fc["forecast"] is None
+
     missing = await call(tools.get_current_air_quality, {"station": "ST999"})
     assert (missing["ok"], missing["code"]) == (False, "STATION_NOT_FOUND")
     bad = await call(tools.get_history_summary, {"station": "ST001", "hours": 100})

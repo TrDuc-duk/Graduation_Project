@@ -15,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import settings_store, timeutil
 from app.core.aqi_scale import level_of
+from app.core.i18n import t
 from app.modules.devices import service as devices
 from app.modules.devices.models import Node
+from app.modules.forecast import current as forecast_current
 from app.modules.hourly import service as hourly
 from app.modules.hourly.aggregate import aqi_from_pm
 from app.modules.hourly.models import NodeHourly
@@ -528,3 +530,60 @@ def _metric_value(metric: str, value: float | None) -> float | int | None:
 
 def _r2(value: float | None) -> float | None:
     return None if value is None else round(value, 2)
+
+
+# ---------- dự báo hiện hành (backend_design 11.5) ----------
+
+
+async def station_forecast(session: AsyncSession, node: Node, now: datetime, horizons: list[int] | None = None):
+    """Dự báo hiện hành của trạm, dùng chung cho `/public/stations/{code}/forecast` và API trợ lý."""
+    return await forecast_current.current_forecast(session, node.id, now, horizons)
+
+
+def forecast_out(code: str, cf, lang: str) -> dict:
+    """Dạng response công khai của dự báo (11.5): không có `reason` nội bộ, mốc đã qua bị bỏ, thời gian +07:00."""
+    pub = cf.forecast
+    return {
+        "station_id": code,
+        "status": cf.status,
+        "freshness": {"age_hours": cf.age_hours, "expected_input_hour": timeutil.iso_local(cf.expected_input_hour)},
+        "forecast": None
+        if pub is None
+        else {
+            "model_version": pub.model_version,
+            "input_hour": timeutil.iso_local(pub.input_hour),
+            "issued_at": timeutil.iso_local(pub.issued_at),
+            "issue_kind": pub.issue_kind,
+            "input_coverage": pub.input_coverage,
+            "items": [
+                {
+                    "horizon_h": i.horizon_h,
+                    "target_time": timeutil.iso_local(i.target_time),
+                    "aqi": i.aqi,
+                    "level": i.level,
+                    "confidence": i.confidence,
+                    "typical_error": i.typical_error,
+                    "error_source": i.error_source,
+                }
+                for i in pub.items
+            ],
+        },
+        "latest_attempt": None
+        if cf.latest_attempt is None
+        else {
+            "input_hour": timeutil.iso_local(cf.latest_attempt.input_hour),
+            "status": cf.latest_attempt.status,
+            **({"readiness": cf.latest_attempt.readiness} if cf.latest_attempt.readiness else {}),
+        },
+        "message": t(cf.message_key, lang, **cf.message_params) if cf.message_key else None,
+    }
+
+
+def parse_horizons(raw: str | None) -> list[int] | None:
+    """`?horizons=3,6,12` → [3, 6, 12] (bội số của 3 trong 3–72, bỏ trùng); không truyền → None; sai → ValueError."""
+    if raw is None or not raw.strip():
+        return None
+    values = sorted({int(x) for x in raw.split(",") if x.strip()})
+    if not values or any(h % 3 or not 3 <= h <= 72 for h in values):
+        raise ValueError(raw)
+    return values

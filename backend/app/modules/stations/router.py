@@ -141,6 +141,28 @@ async def profile(
     return {"station_id": code.strip().upper(), "days": days, "items": items}
 
 
+@router.get("/stations/{code}/forecast")
+async def forecast_of(
+    code: Annotated[str, Path(max_length=16)], lang: Lang, horizons: Annotated[str | None, Query(max_length=100)] = None
+) -> dict:
+    """Dự báo hiện hành (11.5, R23): `ok`, `stale` (chỉ mốc tương lai) hoặc trạng thái không có số kèm lý do."""
+    try:
+        wanted = service.parse_horizons(horizons)
+    except ValueError:
+        raise AppError("INVALID_PARAMS", 422, t("errors.INVALID_HORIZONS", lang)) from None
+    now = timeutil.now()
+
+    async def work(session: AsyncSession):
+        found = await service.public_station(session, code, now)
+        return None if found is None else (found, await service.station_forecast(session, found.node, now, wanted))
+
+    out = await run_in_transaction(work)
+    if out is None:
+        raise AppError("STATION_NOT_FOUND", 404, t("errors.STATION_NOT_FOUND", lang, code=code))
+    found, cf = out
+    return service.forecast_out(found.node.station_code, cf, lang)
+
+
 @router.get("/stations/{code}/weather")
 async def weather_of(code: Annotated[str, Path(max_length=16)], lang: Lang) -> dict:
     """Thời tiết hiện tại tại tọa độ trạm (OpenWeatherMap), chỉ để hiển thị. Lỗi/chưa có key → 503 (web ẩn thẻ)."""

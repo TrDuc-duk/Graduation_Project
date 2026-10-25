@@ -11,9 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import settings_store, timeutil
 from app.core.aqi_scale import level_of
 from app.core.errors import AssistantError
+from app.core.i18n import t
 from app.modules.assistant.schemas import (
     UNITS,
     CurrentOut,
+    ForecastBodyOut,
+    ForecastItemOut,
     ForecastOut,
     MetricOut,
     StationItem,
@@ -33,7 +36,7 @@ TREND_LABELS = {
     stations.STABLE: "ổn định",
     stations.INSUFFICIENT: "chưa đủ dữ liệu để đánh giá",
 }
-FORECAST_UNAVAILABLE = "Hệ thống chưa có mô hình dự báo đang chạy nên chưa có số liệu dự báo."
+FORECAST_UNAVAILABLE = "Chưa có dự báo cho trạm này."
 
 
 @dataclass
@@ -147,13 +150,37 @@ async def history_summary(session: AsyncSession, ref: str, hours_raw: str | None
 
 
 async def forecast(session: AsyncSession, ref: str, horizons_raw: str | None, ctx: CallContext) -> ForecastOut:
-    """Dự báo đã lưu của trạm. Hiện chưa có mô hình chạy (M3) nên luôn trả trạng thái `unavailable` kèm lý do."""
+    """Dự báo đã lưu của trạm tại các mốc hỏi (mặc định 3, 6, 12, 24 giờ), cùng quy tắc với web (R23)."""
     horizons = parse_horizons(horizons_raw)
     node = await _resolve(session, ref, ctx)
-    text = f"Trạm {node.name} ({node.station_code}): {FORECAST_UNAVAILABLE} Không có con số dự báo nào để đọc."
-    return ForecastOut(
-        station=_ref(node), status="unavailable", horizons=horizons, message_vi=FORECAST_UNAVAILABLE, summary_vi=text
-    )
+    cf = await stations.station_forecast(session, node, timeutil.now(), horizons)
+    body = None
+    if cf.forecast is not None:
+        pub = cf.forecast
+        body = ForecastBodyOut(
+            model_version=pub.model_version,
+            input_hour=_local(pub.input_hour),
+            issued_at=_local(pub.issued_at),
+            issue_kind=pub.issue_kind,
+            items=[
+                ForecastItemOut(
+                    horizon_h=i.horizon_h,
+                    target_time=_local(i.target_time),
+                    aqi=i.aqi,
+                    level=i.level,
+                    level_label=lv.label if (lv := level_of(i.aqi)) else None,
+                    confidence=i.confidence,
+                    typical_error=i.typical_error,
+                )
+                for i in pub.items
+            ],
+        )
+    message = t(cf.message_key, "vi", **cf.message_params) if cf.message_key else None
+    out = ForecastOut(
+        station=_ref(node), status=cf.status, horizons=horizons, age_hours=cf.age_hours, forecast=body,
+        message_vi=message, summary_vi="",
+    )  # fmt: skip
+    return out.model_copy(update={"summary_vi": forecast_text(out)})
 
 
 # ---------- nhận diện trạm, kiểm tra tham số ----------
@@ -236,6 +263,23 @@ def current_text(c: CurrentOut) -> str:
     )
     if c.advice and not c.stale:
         parts.append(c.advice)
+    return " ".join(parts)
+
+
+def forecast_text(f: ForecastOut) -> str:
+    """Câu tóm tắt dự báo: thời điểm tính, từng mốc (mốc độ tin cậy thấp đọc là xu hướng), sai số tham khảo."""
+    name = f"{f.station.name} ({f.station.code})"
+    if f.forecast is None:
+        return f"Trạm {name}: {f.message_vi or FORECAST_UNAVAILABLE} Không có con số dự báo nào để đọc."
+    parts = [f.message_vi] if f.message_vi else []
+    parts.append(f"Dự báo cho trạm {name} được tính lúc {say_time(f.forecast.issued_at)}.")
+    if not f.forecast.items:
+        parts.append("Không còn mốc dự báo nào trong tương lai.")
+    for i in f.forecast.items:
+        trend = " (chỉ là xu hướng, độ tin cậy thấp)" if i.confidence == "low" else ""
+        error = f", sai số thường gặp khoảng ±{say_number(i.typical_error, digits=0)}" if i.typical_error else ""
+        when = f"Sau {i.horizon_h} giờ, lúc {say_hour(i.target_time)}"
+        parts.append(f"{when}: AQI khoảng {i.aqi}, mức {i.level_label}{error}{trend}.")
     return " ".join(parts)
 
 

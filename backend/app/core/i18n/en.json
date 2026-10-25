@@ -44,6 +44,15 @@
     "RATE_LIMITED": "Too many requests, please try again later.",
     "WEATHER_UNAVAILABLE": "Weather is temporarily unavailable.",
     "WEATHER_DISABLED": "Weather is not enabled.",
-    "SSE_LIMIT": "Too many realtime connections; live updates are paused."
+    "SSE_LIMIT": "Too many realtime connections; live updates are paused.",
+    "INVALID_HORIZONS": "Horizons must be multiples of 3 between 3 and 72 hours, e.g. 3,6,12,24."
+  },
+  "forecast": {
+    "stale": "Forecast from {age} hours ago.",
+    "stale_insufficient": "Forecast from {age} hours ago; the latest update lacked data.",
+    "insufficient_history": "The station needs {required} hours of continuous data to forecast; about {eta} more hours.",
+    "no_data": "The station has no data to forecast yet.",
+    "error": "The forecast could not be updated for now.",
+    "unavailable": "No forecast is available for this station yet."
   }
 }

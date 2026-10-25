@@ -1,8 +1,8 @@
 """Truy vấn SQL của module forecast. Không commit."""
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,3 +87,37 @@ async def forecasts_of(session: AsyncSession, run_id: int) -> list[Forecast]:
     """Các mốc dự báo của một lần chạy, theo horizon."""
     stmt = select(Forecast).where(Forecast.run_id == run_id).order_by(Forecast.horizon_h)
     return list((await session.scalars(stmt)).all())
+
+
+async def latest_success(session: AsyncSession, node_id: int, kinds: tuple[str, ...]) -> ForecastRun | None:
+    """Lần chạy `ok` mới nhất được công khai (loại trong `kinds`), xếp theo input_hour rồi issued_at (R23)."""
+    stmt = (
+        select(ForecastRun)
+        .where(ForecastRun.node_id == node_id, ForecastRun.status == "ok", ForecastRun.issue_kind.in_(kinds))
+        .order_by(ForecastRun.input_hour.desc(), ForecastRun.issued_at.desc())
+        .limit(1)
+    )
+    return (await session.scalars(stmt)).one_or_none()
+
+
+async def latest_run(session: AsyncSession, node_id: int) -> ForecastRun | None:
+    """Lần chạy mới nhất của node, mọi trạng thái và loại (R23)."""
+    stmt = (
+        select(ForecastRun)
+        .where(ForecastRun.node_id == node_id)
+        .order_by(ForecastRun.input_hour.desc(), ForecastRun.started_at.desc())
+        .limit(1)
+    )
+    return (await session.scalars(stmt)).one_or_none()
+
+
+async def live_mae(
+    session: AsyncSession, node_id: int, model_id: int, since: date, kinds: tuple[str, ...]
+) -> dict[int, tuple[int, float]]:
+    """{horizon: (số cặp, MAE)} thực tế của node và model từ ngày `since`, trên các loại phát hành `kinds`."""
+    stmt = text(
+        "SELECT horizon_h, sum(n) AS n, sum(sum_abs_err) AS abs_err FROM forecast_accuracy_daily "
+        "WHERE node_id = :n AND model_id = :m AND day >= :since AND issue_kind = ANY(:kinds) GROUP BY horizon_h"
+    )
+    result = await session.execute(stmt, {"n": node_id, "m": model_id, "since": since, "kinds": list(kinds)})
+    return {r.horizon_h: (int(r.n), r.abs_err / r.n) for r in result if r.n}

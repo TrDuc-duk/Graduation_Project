@@ -144,8 +144,10 @@ def register(server) -> None:
     server.register_tool(
         "get_forecast",
         "Lấy dự báo AQI đã tính sẵn của một trạm cho các mốc giờ tới (bội số của 3, từ 3 đến 72 giờ; mặc định 3, 6, "
-        "12, 24 giờ). Gọi khi người dùng hỏi sắp tới, mấy giờ nữa, ngày mai không khí thế nào. Nếu status là "
-        "unavailable thì nói chưa có dự báo và lý do trong message_vi, tuyệt đối không tự đoán số.",
+        "12, 24 giờ). Gọi khi người dùng hỏi sắp tới, mấy giờ nữa, ngày mai không khí thế nào. Đọc theo summary_vi, "
+        "nói dự báo được tính lúc nào; status stale thì nói dự báo đã cũ bao nhiêu giờ; mốc confidence low chỉ là xu "
+        "hướng. Nếu forecast là null (insufficient_history, no_data, error, unavailable) thì nói chưa có dự báo và lý "
+        "do trong message_vi, tuyệt đối không tự đoán số.",
         {
             "type": "object",
             "properties": {
