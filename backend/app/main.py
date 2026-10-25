@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import include_routers
-from app.core import outbox
+from app.core import events, outbox
 from app.core.config import get_settings
 from app.core.db import get_engine
 from app.core.errors import register_error_handlers
@@ -31,15 +31,18 @@ def register_jobs() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Khởi động: log, job nền (vai trò all/worker). Tắt: dừng job, đóng pool DB."""
+    """Khởi động: log, kết nối LISTEN cho SSE (vai trò all/api), job nền (all/worker). Tắt: dừng hết, đóng pool DB."""
     settings = get_settings()
     setup_logging(settings.log_level)
+    if settings.app_role in ("all", "api"):
+        await events.hub.start()
     if settings.scheduler_active:
         register_jobs()
         scheduler.start()
     yield
     if scheduler.running:
         scheduler.shutdown(wait=False)
+    await events.hub.stop()
     await weather.close()
     await get_engine().dispose()
 

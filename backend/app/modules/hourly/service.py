@@ -5,7 +5,8 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import outbox, settings_store
+from app.core import events, outbox, settings_store
+from app.core.aqi_scale import level_of
 from app.core.db import run_in_transaction
 from app.core.locks import address_key, node_address_locks
 from app.modules.devices import service as devices
@@ -157,6 +158,8 @@ async def _write_hour(session: AsyncSession, node_id: int, hour_end: datetime, n
             await repository.delete_hour(session, node_id, hour_end)
         return False
     await repository.upsert_hour(session, node_id, agg, is_closed=close, revision=0, at=now)
+    if close:
+        await _notify_hourly(session, node, agg)
     return True
 
 
@@ -219,6 +222,7 @@ async def _recompute(session: AsyncSession, node_id: int, hour_end: datetime, no
         return False
     revision = 0 if row is None else row.revision + 1
     await repository.upsert_hour(session, node_id, agg, is_closed=True, revision=revision, at=now)
+    await _notify_hourly(session, node, agg)
     await outbox.publish(
         session,
         "hourly_revised",
@@ -226,6 +230,13 @@ async def _recompute(session: AsyncSession, node_id: int, hour_end: datetime, no
         partition_key=f"node:{node_id}",
     )
     return True
+
+
+async def _notify_hourly(session: AsyncSession, node: Node, agg: HourAggregate) -> None:
+    """SSE `hourly {hour_end, aqi, level}` của giờ vừa đóng/tính lại; gửi sau commit (NOTIFY trong transaction)."""
+    level = level_of(agg.aqi)
+    data = {"hour_end": agg.hour_end.isoformat(), "aqi": agg.aqi, "level": level.key if level else None}
+    await events.notify(session, "hourly", data, node_id=node.id, station_code=node.station_code)
 
 
 async def _node_ids_of_hour(session: AsyncSession, hour_end: datetime) -> list[int]:

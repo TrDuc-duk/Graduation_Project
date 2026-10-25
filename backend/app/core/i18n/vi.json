@@ -43,6 +43,7 @@
     "RANGE_TOO_LARGE": "Khoảng thời gian quá dài cho độ phân giải {resolution} (tối đa {max_days} ngày).",
     "RATE_LIMITED": "Quá nhiều yêu cầu, vui lòng thử lại sau.",
     "WEATHER_UNAVAILABLE": "Tạm thời không lấy được thời tiết.",
-    "WEATHER_DISABLED": "Tính năng thời tiết chưa được bật."
+    "WEATHER_DISABLED": "Tính năng thời tiết chưa được bật.",
+    "SSE_LIMIT": "Quá nhiều kết nối realtime, cập nhật realtime tạm tắt."
   }
 }
