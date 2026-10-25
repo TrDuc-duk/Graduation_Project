@@ -37,8 +37,10 @@ for k in DB_SUPERUSER_PASSWORD DB_MIGRATOR_PASSWORD DB_APP_PASSWORD JWT_SECRET A
 done
 nano docker/.env                            # điền DOMAIN, LETSENCRYPT_EMAIL, PUBLIC_BASE_URL
 
-# Model: mỗi phiên bản một thư mục, không ghi đè (backend_design 8.1)
-mkdir -p models/xgb/v1-no_fill && cp ml/ml_xgb/models/xgb_AQI_h*.json models/xgb/v1-no_fill/
+# Model: mỗi phiên bản một thư mục, không ghi đè (backend_design 8.1). Script chép đúng 24 model + 24 metadata,
+# ghi MANIFEST.sha256 và đối chiếu docker/models/<tên>.sha256 (đã commit). File model không nằm trong git:
+# chép ml/ml_xgb/models/ (hoặc thư mục models/xgb/) sang máy chủ trước.
+(cd backend && python3 -m scripts.prepare_model_bundle --name v1-no_fill)
 
 cd docker
 docker compose up -d db                                       # lần đầu tự chạy db/100_aqi_roles.sh

@@ -1,5 +1,6 @@
 """Điểm vào FastAPI: `uvicorn app.main:app`."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -16,8 +17,11 @@ from app.core.logging import setup_logging
 from app.core.scheduler import add_job, scheduler
 from app.modules.hourly.jobs import hourly_rollup
 from app.modules.ingest.jobs import interval_stats
+from app.modules.mlruntime.registry import registry
 from app.modules.pipeline.jobs import hourly_pipeline
 from app.modules.weather import service as weather
+
+log = logging.getLogger(__name__)
 
 
 def register_jobs() -> None:
@@ -36,6 +40,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     setup_logging(settings.log_level)
     if settings.app_role in ("all", "api"):
         await events.hub.start()
+    events.hub.subscribe(registry.on_event)  # đổi model ở tiến trình khác → nạp lại
+    try:
+        await registry.rescan()  # nạp model active; lỗi model không làm API ngừng chạy (dự báo báo không sẵn sàng)
+    except Exception:  # noqa: BLE001
+        log.exception("Không quét/nạp được model")
     if settings.scheduler_active:
         register_jobs()
         scheduler.start()

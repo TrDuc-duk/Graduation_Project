@@ -16,3 +16,6 @@ httpx==0.28.1
 # Cùng phiên bản với ml/ml_xgb/requirements.txt (src.aqi dùng numpy, pandas)
 numpy==2.5.3
 pandas==3.0.6
+# Dự báo (M3): đúng bản lúc train (meta.library_versions); XGBRegressor của xgboost cần scikit-learn
+xgboost==3.4.1
+scikit-learn==1.9.1
