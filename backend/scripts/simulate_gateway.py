@@ -14,13 +14,12 @@ Ví dụ:
 
 import argparse
 import asyncio
+import os
 import random
 import time
 
 import httpx
 
-SECRET = "super-secret-key"
-PROVISION_KEY = "airquality2026"
 BUFFER_SIZE = 10
 FLUSH_INTERVAL_S = 30
 HEARTBEAT_INTERVAL_S = 300
@@ -72,7 +71,7 @@ class SimGateway:
 
     async def flush(self) -> None:
         """Xả toàn bộ buffer trong một POST, thử 3 lần (nghỉ 1 rồi 2 giây); chỉ 200 mới làm rỗng buffer."""
-        body = {"gateway_id": self.gateway_id, "secret": SECRET, "data": list(self.buffer)}
+        body = {"gateway_id": self.gateway_id, "secret": self.args.gateway_secret, "data": list(self.buffer)}
         for attempt in range(1, 4):
             self.stats["sent"] += 1
             status = await self.post("/telemetry", body)
@@ -106,7 +105,9 @@ class SimGateway:
             if not self.offline(elapsed):
                 if now - last_heartbeat >= HEARTBEAT_INTERVAL_S:
                     last_heartbeat = now
-                    status = await self.post("/telemetry/heartbeat", {"gateway_id": self.gateway_id, "secret": SECRET})
+                    status = await self.post(
+                        "/telemetry/heartbeat", {"gateway_id": self.gateway_id, "secret": self.args.gateway_secret}
+                    )
                     print(f"[{self.gateway_id}] heartbeat {status}")
                 if self.buffer and (len(self.buffer) >= BUFFER_SIZE or now - last_flush >= FLUSH_INTERVAL_S):
                     last_flush = now
@@ -122,7 +123,7 @@ async def provision(args: argparse.Namespace, client: httpx.AsyncClient, index: 
     else:
         r = await client.post(
             f"{args.base}/api/v1/provision/gateway",
-            json={"provision_key": PROVISION_KEY, "name": f"Gateway mô phỏng {index + 1}", "location_desc": "sim"},
+            json={"provision_key": args.provision_key, "name": f"Gateway mô phỏng {index + 1}", "location_desc": "sim"},
         )
         r.raise_for_status()
         gateway_id = r.json()["data"]["id"]
@@ -131,7 +132,7 @@ async def provision(args: argparse.Namespace, client: httpx.AsyncClient, index: 
         r = await client.post(
             f"{args.base}/api/v1/provision/node",
             json={
-                "provision_key": PROVISION_KEY,
+                "provision_key": args.provision_key,
                 "name": f"Node mô phỏng {gateway_id}-{i + 1}",
                 "gateway_id": gateway_id,
                 "lat": round(21.0 + random.uniform(-0.05, 0.05), 5),
@@ -159,6 +160,12 @@ async def main() -> None:
     p.add_argument("--resend-prob", type=float, default=0.0, help="xác suất gửi lại batch đã nhận 200")
     p.add_argument("--insecure", action="store_true", help="chấp nhận chứng chỉ tự ký (như firmware setInsecure)")
     args = p.parse_args()
+    args.gateway_secret = os.environ.get("GATEWAY_SECRET", "").strip() or next(
+        (value.strip() for value in os.environ.get("GATEWAY_SECRETS", "").split(",") if value.strip()), ""
+    )
+    args.provision_key = os.environ.get("PROVISION_KEY", "").strip()
+    if not args.gateway_secret or not args.provision_key:
+        p.error("Cần đặt GATEWAY_SECRET (hoặc GATEWAY_SECRETS) và PROVISION_KEY trong biến môi trường.")
 
     async with httpx.AsyncClient(verify=not args.insecure) as client:
         count = 1 if args.gateway_id else args.gateways

@@ -4,8 +4,8 @@ Nguồn: datn-main/firmware/gateway/src/net/http_client.cpp (bản `gateway`, c�
 bản `gateway-30pin` bỏ msg_id; datn-main/scripts/simulator.js; captive_portal.cpp của Gateway và node.
 """
 
-SECRET = "super-secret-key"
-PROVISION_KEY = "airquality2026"
+SECRET = "TEST_ONLY_GATEWAY_KEY"
+PROVISION_KEY = "TEST_ONLY_PROVISION_KEY"
 
 
 def item(node: int = 1, msg_id: int | None = 12, **values: object) -> dict:

@@ -14,8 +14,12 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine, text
 
+from tests.fixtures.firmware import PROVISION_KEY, SECRET
+
 os.environ.setdefault("SCHEDULER_ENABLED", "false")  # test tự gọi job, không để scheduler chạy
 os.environ.setdefault("ENABLE_DEV_ENDPOINTS", "true")  # test cả API dev
+os.environ["GATEWAY_SECRETS"] = SECRET  # chỉ dùng khóa giả của fixture, không đọc khóa thiết bị thật từ .env
+os.environ["PROVISION_KEY"] = PROVISION_KEY
 os.environ["ASSISTANT_TOKEN"] = "test-assistant-token"  # bật API trợ lý với token cố định của test
 os.environ["JWT_SECRET"] = "test-jwt-secret-0123456789abcdef0123456789abcdef"  # khóa cố định (≥ 32 byte) cho test
 

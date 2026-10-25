@@ -282,7 +282,7 @@ async def test_wrong_or_missing_secret_is_401(client, db, active_setup):
 
 @pytest.mark.parametrize(
     "body",
-    [b"not json", b'{"gateway_id": "GW_001", "secret": "super-secret-key", "data": {}}', b"[1]"],
+    [b"not json", b'{"gateway_id": "GW_001", "secret": "TEST_ONLY_GATEWAY_KEY", "data": {}}', b"[1]"],
 )
 async def test_malformed_body_is_400(client, db, body):
     r = await client.post(URL, content=body, headers={"content-type": "application/json"})

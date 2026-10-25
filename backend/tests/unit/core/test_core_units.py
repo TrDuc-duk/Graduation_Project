@@ -27,8 +27,8 @@ def test_fixed_clock_is_used_by_now():
 
 
 def test_gateway_secrets_split_from_env_string():
-    s = Settings(database_url="x", provision_key="k", gateway_secrets="old-key, super-secret-key,")
-    assert s.gateway_secrets == ["old-key", "super-secret-key"]
+    s = Settings(database_url="x", provision_key="k", gateway_secrets="old-key, TEST_ONLY_GATEWAY_KEY,")
+    assert s.gateway_secrets == ["old-key", "TEST_ONLY_GATEWAY_KEY"]
 
 
 def test_m2_settings_defaults_and_cors_split(monkeypatch):
@@ -81,9 +81,9 @@ def test_scheduler_only_for_all_and_worker():
 
 
 def test_matches_any_secret():
-    assert matches_any("super-secret-key", ["a", "super-secret-key"])
-    assert not matches_any("wrong", ["super-secret-key"])
-    assert not matches_any(None, ["super-secret-key"])
+    assert matches_any("TEST_ONLY_GATEWAY_KEY", ["a", "TEST_ONLY_GATEWAY_KEY"])
+    assert not matches_any("wrong", ["TEST_ONLY_GATEWAY_KEY"])
+    assert not matches_any(None, ["TEST_ONLY_GATEWAY_KEY"])
     assert not matches_any("", [""])
 
 

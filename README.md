@@ -52,6 +52,8 @@ Triển khai lên VPS (HTTPS, Let's Encrypt, sao lưu): [docker/README.md](docke
 - Mọi bí mật nằm trong `docker/.env` (không commit): mật khẩu DB, `JWT_SECRET`, `GATEWAY_SECRETS`, `PROVISION_KEY`, `ASSISTANT_TOKEN`, `WEATHER_API_KEY`, `MCP_ENDPOINT`. Danh sách biến ở [docker/.env.example](docker/.env.example).
 - Khóa trong firmware nằm ở `firmware/*/include/secrets.h` (không commit), tạo từ `secrets.example.h`; xem [firmware/README.md](firmware/README.md).
 - Sinh secret ngẫu nhiên: `openssl rand -hex 24`.
+- Khóa trong test/CI chỉ là giá trị giả, không dùng cho backend hoặc firmware thật. Nếu từng dùng khóa công khai từ repo, đổi khóa đồng bộ trên backend và thiết bị; xóa khỏi lịch sử không thu hồi khóa đã lộ.
+- Script `backend/scripts/simulate_gateway.py` đọc `GATEWAY_SECRET` (hoặc khóa đầu trong `GATEWAY_SECRETS`) và `PROVISION_KEY` từ môi trường, không có khóa mặc định. Từ gốc dự án, nạp cấu hình cục bộ bằng `set -a; . docker/.env; set +a` trước khi chạy; không đưa giá trị khóa vào tham số dòng lệnh hoặc commit.
 
 ## Kiểm thử
 

@@ -19,8 +19,8 @@ jobs:
       DB_MIGRATOR_PASSWORD: ci_migrator
       DB_APP_PASSWORD: ci_app
       JWT_SECRET: ci_jwt_secret_0123456789abcdef0123456789abcdef
-      GATEWAY_SECRETS: super-secret-key
-      PROVISION_KEY: airquality2026
+      GATEWAY_SECRETS: TEST_ONLY_GATEWAY_KEY
+      PROVISION_KEY: TEST_ONLY_PROVISION_KEY
       DATABASE_URL: postgresql+psycopg://aqi_app:ci_app@localhost:5432/aqi
       MIGRATION_DATABASE_URL: postgresql+psycopg://aqi_migrator:ci_migrator@localhost:5432/aqi
       ALLOW_TEST_DB_WIPE: "1"   # DB tạm của CI, được phép xóa dữ liệu khi test
