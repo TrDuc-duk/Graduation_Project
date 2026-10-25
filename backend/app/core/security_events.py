@@ -1,6 +1,7 @@
 """Ghi sự kiện bảo mật (backend_design 14.3) để Admin xem ở trang Hệ thống."""
 
 import json
+from datetime import datetime
 from typing import Literal
 
 from sqlalchemy import text
@@ -19,15 +20,20 @@ async def record(
     source_ip: str | None = None,
     gateway_id: str | None = None,
     node_id: int | None = None,
+    occurred_at: datetime | None = None,
     **details: object,
 ) -> None:
-    """Ghi một sự kiện trong transaction hiện tại. `details` là thông tin thêm, không chứa secret."""
+    """Ghi một sự kiện trong transaction hiện tại. `details` là thông tin thêm, không chứa secret.
+
+    `occurred_at` mặc định là giờ DB; truyền thời điểm của ứng dụng khi cần đếm theo cửa sổ (vd đăng nhập sai).
+    """
     await session.execute(
         text(
-            "INSERT INTO security_events (kind, severity, source_ip, gateway_id, node_id, details) "
-            "VALUES (:kind, :sev, CAST(:ip AS inet), :gw, :node, CAST(:details AS jsonb))"
+            "INSERT INTO security_events (occurred_at, kind, severity, source_ip, gateway_id, node_id, details) "
+            "VALUES (coalesce(:at, now()), :kind, :sev, CAST(:ip AS inet), :gw, :node, CAST(:details AS jsonb))"
         ),
         {
+            "at": occurred_at,
             "kind": kind,
             "sev": severity,
             "ip": source_ip,

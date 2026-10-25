@@ -10,6 +10,10 @@ GeoAlchemy2==0.20.0
 tenacity==9.2.1
 limits==5.8.0
 APScheduler==3.11.3
+# Xác thực Admin (backend_design 11.7, 14.4): JWT HS256, argon2id, HKDF cho refresh token
+PyJWT==2.15.1
+argon2-cffi==25.1.0
+cryptography==50.0.2
 # SSE (backend_design 11.6) và gọi OpenWeatherMap (11.11)
 sse-starlette==3.5.1
 httpx==0.28.1
