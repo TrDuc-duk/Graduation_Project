@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.db import get_sessionmaker
+from app.modules.mlruntime.registry import registry
 
 router = APIRouter(tags=["system"])
 
@@ -29,5 +30,11 @@ async def readyz() -> JSONResponse:
 
     extensions = {name: name in installed for name in REQUIRED_EXTENSIONS}
     ready = all(extensions.values())
-    body = {"status": "ok" if ready else "unavailable", "db": "ok", "extensions": extensions, "model": "not_loaded"}
+    loaded = registry.current()
+    model = (
+        {"status": "loaded", "dir_name": loaded.dir_name, "bundle_sha256": loaded.bundle_sha256}
+        if loaded
+        else {"status": "not_loaded"}
+    )
+    body = {"status": "ok" if ready else "unavailable", "db": "ok", "extensions": extensions, "model": model}
     return JSONResponse(body, status_code=200 if ready else 503)

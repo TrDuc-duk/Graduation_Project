@@ -45,7 +45,16 @@
     "WEATHER_UNAVAILABLE": "Tạm thời không lấy được thời tiết.",
     "WEATHER_DISABLED": "Tính năng thời tiết chưa được bật.",
     "SSE_LIMIT": "Quá nhiều kết nối realtime, cập nhật realtime tạm tắt.",
-    "INVALID_HORIZONS": "Mốc dự báo phải là bội số của 3 trong khoảng 3–72 giờ, ví dụ 3,6,12,24."
+    "INVALID_HORIZONS": "Mốc dự báo phải là bội số của 3 trong khoảng 3–72 giờ, ví dụ 3,6,12,24.",
+    "INVALID_CREDENTIALS": "Sai tên đăng nhập hoặc mật khẩu.",
+    "ACCOUNT_LOCKED": "Tài khoản tạm khóa 15 phút do nhập sai mật khẩu nhiều lần.",
+    "INVALID_REFRESH": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
+    "SESSION_REVOKED": "Phiên đăng nhập đã kết thúc.",
+    "UNAUTHORIZED": "Cần đăng nhập.",
+    "FORBIDDEN": "Tài khoản không có quyền thực hiện thao tác này.",
+    "AUTH_CONFIG_ERROR": "Lỗi cấu hình xác thực phía máy chủ.",
+    "SESSION_NOT_FOUND": "Không tìm thấy phiên đăng nhập.",
+    "WEAK_PASSWORD": "Mật khẩu mới phải có ít nhất 10 ký tự và khác mật khẩu cũ."
   },
   "forecast": {
     "stale": "Dự báo từ {age} giờ trước.",

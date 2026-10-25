@@ -45,7 +45,16 @@
     "WEATHER_UNAVAILABLE": "Weather is temporarily unavailable.",
     "WEATHER_DISABLED": "Weather is not enabled.",
     "SSE_LIMIT": "Too many realtime connections; live updates are paused.",
-    "INVALID_HORIZONS": "Horizons must be multiples of 3 between 3 and 72 hours, e.g. 3,6,12,24."
+    "INVALID_HORIZONS": "Horizons must be multiples of 3 between 3 and 72 hours, e.g. 3,6,12,24.",
+    "INVALID_CREDENTIALS": "Wrong username or password.",
+    "ACCOUNT_LOCKED": "The account is locked for 15 minutes after too many failed attempts.",
+    "INVALID_REFRESH": "Your session has expired, please sign in again.",
+    "SESSION_REVOKED": "Your session has ended.",
+    "UNAUTHORIZED": "Sign-in required.",
+    "FORBIDDEN": "Your account is not allowed to do this.",
+    "AUTH_CONFIG_ERROR": "Server authentication configuration error.",
+    "SESSION_NOT_FOUND": "Session not found.",
+    "WEAK_PASSWORD": "The new password must have at least 10 characters and differ from the old one."
   },
   "forecast": {
     "stale": "Forecast from {age} hours ago.",

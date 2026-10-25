@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     model_dir: str = "/models/xgb"
     # Gốc URL công khai, dùng tạo đường dẫn trong thông báo
     public_base_url: str = ""
+    # Tài khoản admin đầu tiên cho scripts.create_admin (bí mật, chỉ trong .env; không truyền vào container chạy lâu)
+    admin_username: str = ""
+    admin_password: str = ""
     # Origin được gọi API từ trình duyệt khác origin (chỉ dev, vd http://localhost:5173); production để trống
     cors_origins: Annotated[list[str], NoDecode] = []
 
