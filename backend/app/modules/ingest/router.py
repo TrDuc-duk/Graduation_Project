@@ -17,6 +17,7 @@ from app.core.db import run_in_transaction
 from app.core.errors import DeviceError
 from app.core.ratelimit import client_ip
 from app.core.security import matches_any
+from app.modules.audit import service as audit
 from app.modules.devices import service as devices
 from app.modules.ingest import pipeline
 from app.modules.ingest.schemas import (
@@ -29,6 +30,8 @@ from app.modules.ingest.schemas import (
 from app.modules.telemetry import service as telemetry
 
 log = logging.getLogger(__name__)
+
+PROVISION_ACTOR = "provisioning"  # người thực hiện là thiết bị qua cổng cấu hình, không phải tài khoản Admin
 
 router = APIRouter(tags=["device"])
 
@@ -199,6 +202,10 @@ async def provision_gateway(request: Request) -> dict:
     async def work(session) -> dict:
         gateway = await devices.provision_gateway(session, body.name, body.location_desc)
         await _log_provision(session, ip, gateway.id, raw)
+        await audit.record(
+            session, "gateway.provision", username=PROVISION_ACTOR, entity_type="gateway", entity_id=gateway.id,
+            changes={"name": gateway.name, "location_desc": gateway.location_desc, "status": gateway.status}, ip=ip,
+        )  # fmt: skip
         return {
             "id": gateway.id,
             "name": gateway.name,
@@ -229,6 +236,12 @@ async def provision_node(request: Request) -> dict:
     async def work(session) -> dict:
         node = await devices.provision_node(session, body.name, body.gateway_id, body.lat, body.lng, timeutil.now())
         await _log_provision(session, ip, body.gateway_id, raw)
+        await audit.record(
+            session, "node.provision", username=PROVISION_ACTOR, entity_type="node", entity_id=node.id,
+            changes={"name": node.name, "station_code": node.station_code, "device_code": node.device_code,
+                     "gateway_id": node.home_gateway_id, "lat": body.lat, "lng": body.lng, "status": node.status},
+            ip=ip,
+        )  # fmt: skip
         return {
             "id": node.device_code,
             "node_numeric_id": node.lora_addr,
@@ -250,7 +263,7 @@ async def provision_node(request: Request) -> dict:
 
 
 async def _log_provision(session, ip: str | None, gateway_id: str | None, raw: dict) -> None:
-    """Ghi lần provisioning thành công vào ingest_batches. TODO(M4): ghi thêm audit_logs qua module audit."""
+    """Ghi lần provisioning thành công vào ingest_batches (nhật ký audit ghi riêng ở từng endpoint)."""
     await telemetry.log_batch(
         session,
         received_at=timeutil.now(),
