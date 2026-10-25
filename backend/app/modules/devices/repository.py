@@ -22,6 +22,13 @@ async def default_network_id(session: AsyncSession) -> int:
     return (await session.scalars(select(LoraNetwork.id).where(LoraNetwork.code == DEFAULT_NETWORK))).one()
 
 
+async def lock_or_create_network(session: AsyncSession, code: str, name: str) -> LoraNetwork:
+    """Khóa (tạo nếu chưa có) mạng LoRa theo mã tới hết transaction."""
+    await session.execute(insert(LoraNetwork).values(code=code, name=name).on_conflict_do_nothing())
+    stmt = select(LoraNetwork).where(LoraNetwork.code == code).with_for_update()
+    return (await session.scalars(stmt)).one()
+
+
 async def lock_network(session: AsyncSession, network_id: int) -> None:
     """Khóa dòng một mạng LoRa tới hết transaction (dùng khi cấp địa chỉ node)."""
     await session.execute(select(LoraNetwork.id).where(LoraNetwork.id == network_id).with_for_update())

@@ -79,6 +79,29 @@ async def provision_node(
     return await _new_node(session, network_id, addr, name, "provision", home.id if home else None, geom)
 
 
+SIMULATED_NETWORK = "simulated"  # mạng riêng không có Gateway: trạm mô phỏng không chiếm địa chỉ node thật
+
+
+async def create_simulated_node(
+    session: AsyncSession, name: str, lat: float, lng: float, district: str | None = None
+) -> Node:
+    """Tạo trạm mô phỏng (P10): active, công khai, `is_simulated`, chu kỳ khóa 1 giờ, trong mạng LoRa `simulated`.
+
+    Mạng này không có Gateway nên firmware không gửi được vào; dữ liệu chỉ nạp bằng scripts.import_hourly_csv.
+    """
+    network = await repository.lock_or_create_network(session, SIMULATED_NETWORK, "Trạm mô phỏng")
+    taken = await repository.live_addrs(session, network.id)
+    free = addressing.free_addresses(taken)
+    if not free:
+        raise NoFreeAddressError(network.id)
+    geom = WKTElement(f"POINT({lng} {lat})", srid=4326)
+    node = await _new_node(session, network.id, free[0], name, "admin", None, geom)
+    node.status, node.is_simulated, node.district = "active", True, district
+    node.expected_interval_s, node.interval_locked = 3600, True
+    await session.flush()
+    return node
+
+
 async def list_nodes(session: AsyncSession) -> list[Node]:
     """Mọi node chưa ngưng hoạt động (kể cả pending), theo id."""
     return await repository.list_nodes(session)

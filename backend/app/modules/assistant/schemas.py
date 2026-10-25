@@ -18,6 +18,11 @@ class StationRef(BaseModel):
     code: str  # mã trạm công khai, vd ST001
     name: str
     district: str | None
+    is_simulated: bool = False  # trạm mô phỏng (P10): luôn nói rõ khi trả lời
+
+    def spoken(self) -> str:
+        """Tên đọc trong câu trả lời: "Bách Khoa (ST001)", trạm mô phỏng thêm "(trạm mô phỏng)"."""
+        return f"{self.name} ({self.code}{', trạm mô phỏng' if self.is_simulated else ''})"
 
 
 class StationItem(StationRef):

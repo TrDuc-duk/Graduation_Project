@@ -249,11 +249,11 @@ def current_text(c: CurrentOut) -> str:
     if c.aqi is not None and c.aqi_hour_end is not None:
         start = say_hour(c.aqi_hour_end - timedelta(hours=1))
         parts.append(
-            f"Trạm {c.station.name} ({c.station.code}): AQI giờ {c.aqi}, mức {c.level_label} "
+            f"Trạm {c.station.spoken()}: AQI giờ {c.aqi}, mức {c.level_label} "
             f"(trung bình từ {start} đến {say_time(c.aqi_hour_end)})."
         )
     else:
-        parts.append(f"Trạm {c.station.name} ({c.station.code}) chưa có AQI giờ (cần một giờ dữ liệu đã đóng).")
+        parts.append(f"Trạm {c.station.spoken()} chưa có AQI giờ (cần một giờ dữ liệu đã đóng).")
     instant = f"AQI tức thời {c.aqi_instant}" if c.aqi_instant is not None else "chưa tính được AQI tức thời"
     parts.append(f"Lần đo gần nhất lúc {say_time(c.measured_at)}: {instant}.")
     parts.append(
@@ -268,7 +268,7 @@ def current_text(c: CurrentOut) -> str:
 
 def forecast_text(f: ForecastOut) -> str:
     """Câu tóm tắt dự báo: thời điểm tính, từng mốc (mốc độ tin cậy thấp đọc là xu hướng), sai số tham khảo."""
-    name = f"{f.station.name} ({f.station.code})"
+    name = f.station.spoken()
     if f.forecast is None:
         return f"Trạm {name}: {f.message_vi or FORECAST_UNAVAILABLE} Không có con số dự báo nào để đọc."
     parts = [f.message_vi] if f.message_vi else []
@@ -286,7 +286,7 @@ def forecast_text(f: ForecastOut) -> str:
 def summary_text(s: SummaryOut) -> str:
     """Câu tóm tắt lịch sử: khoảng có dữ liệu, rồi AQI, PM2.5, PM10 (kèm xu hướng), nhiệt độ, độ ẩm."""
     parts = [
-        f"Trong {s.hours} giờ qua, trạm {s.station.name} ({s.station.code}) có {s.n_samples} số đo, "
+        f"Trong {s.hours} giờ qua, trạm {s.station.spoken()} có {s.n_samples} số đo, "
         f"từ {say_time(s.data_from)} đến {say_time(s.data_to)}."
     ]
     for name, label, unit, digits in (
@@ -333,7 +333,11 @@ def _stations_text(items: list[StationItem], default_code: str | None) -> str:
     """Câu tóm tắt danh sách trạm."""
     if not items:
         return "Hiện chưa có trạm quan trắc nào được công khai."
-    status = [f"{s.code} {s.name} ({'đang gửi dữ liệu' if s.online else 'không gửi dữ liệu mới'})" for s in items]
+    status = [
+        f"{s.code} {s.name}{' (mô phỏng)' if s.is_simulated else ''} "
+        f"({'đang gửi dữ liệu' if s.online else 'không gửi dữ liệu mới'})"
+        for s in items
+    ]
     default = f" Trạm mặc định là {default_code}." if default_code else " Chưa cấu hình trạm mặc định."
     return f"Có {len(items)} trạm: " + "; ".join(status) + "." + default
 
@@ -347,7 +351,7 @@ def _list_text(refs: list[StationRef]) -> str:
 
 def _ref(node: Node) -> StationRef:
     """Thông tin trạm công khai của một node."""
-    return StationRef(code=node.station_code, name=node.name, district=node.district)
+    return StationRef(code=node.station_code, name=node.name, district=node.district, is_simulated=node.is_simulated)
 
 
 def _local(t: datetime) -> datetime:

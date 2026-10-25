@@ -164,6 +164,56 @@ async def _write_hour(session: AsyncSession, node_id: int, hour_end: datetime, n
     return True
 
 
+@dataclass(frozen=True)
+class ImportedHour:
+    """Một giờ nạp từ CSV dạng dataset.csv cho trạm mô phỏng (giá trị đã là trung bình giờ)."""
+
+    hour_end: datetime
+    aqi: int | None
+    pm25: float | None
+    pm10: float | None
+    temperature: float | None
+    humidity: float | None
+
+
+async def import_hours(session: AsyncSession, node: Node, hours: list[ImportedHour], now: datetime) -> dict:
+    """Ghi các giờ nạp sẵn vào `node_hourly` (đã đóng) của trạm mô phỏng; nạp lại cùng dữ liệu thì không đổi gì.
+
+    Chỉ nhận trạm `is_simulated` (không ghi đè lịch sử trạm thật). Giờ đã có mà khác thì tăng revision và báo outbox
+    `hourly_revised` như tính lại thường. AQI lấy đúng cột AQI của CSV (như lúc train).
+    """
+    if not node.is_simulated:
+        raise ValueError(f"{node.station_code} không phải trạm mô phỏng: không nạp dữ liệu CSV")
+    await _lock(session, [node])
+    stats = {"inserted": 0, "updated": 0, "unchanged": 0}
+    for h in hours:
+        agg = _imported_aggregate(h)
+        row = await repository.get_hour(session, node.id, h.hour_end)
+        if row is not None and _same(row, agg):
+            stats["unchanged"] += 1
+            continue
+        revision = 0 if row is None else row.revision + 1
+        await repository.upsert_hour(session, node.id, agg, is_closed=True, revision=revision, at=now)
+        if row is not None:
+            payload = {"node_id": node.id, "hour_end": h.hour_end.isoformat(), "revision": revision}
+            await outbox.publish(session, "hourly_revised", payload, partition_key=f"node:{node.id}")
+        stats["updated" if row is not None else "inserted"] += 1
+    return stats
+
+
+def _imported_aggregate(h: ImportedHour) -> HourAggregate:
+    """Dòng giờ từ CSV: mỗi biến có giá trị tính là 1 mẫu; không có độ phủ (không có số đo thô)."""
+    values = (h.pm25, h.pm10, h.temperature, h.humidity)
+    return HourAggregate(
+        hour_end=h.hour_end, n_samples=1 if any(v is not None for v in values) else 0, n_excluded=0,
+        n_time_estimated=0, n_time_ambiguous=0, expected_samples=None, coverage=None,
+        n_pm25=int(h.pm25 is not None), n_pm10=int(h.pm10 is not None), n_temperature=int(h.temperature is not None),
+        n_humidity=int(h.humidity is not None), n_co2=0, pm25_avg=h.pm25, pm10_avg=h.pm10,
+        temperature_avg=h.temperature, humidity_avg=h.humidity, co2_avg=None, tvoc_avg=None, pm25_max=h.pm25,
+        pm10_max=h.pm10, aqi=h.aqi, aqi_pm25=None, aqi_pm10=None, qc_flags=0,
+    )  # fmt: skip
+
+
 async def latest_closable_hour(now: datetime) -> datetime:
     """Giờ `h` mới nhất đã qua mốc đóng: now ≥ h + hour_close_grace_s ("giờ đóng mới nhất", backend_design 8.4)."""
     grace = await settings_store.get("hour_close_grace_s")

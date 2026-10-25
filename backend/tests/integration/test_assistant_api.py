@@ -74,6 +74,7 @@ async def test_list_hides_pending_and_reports_default(client, db):
         "district": "Hai Bà Trưng",
         "online": False,
         "last_measured_at": None,
+        "is_simulated": False,
     }
     assert body["default_station"] == "ST001" and "Trạm mặc định là ST001" in body["summary_vi"]
 
