@@ -15,6 +15,7 @@ from app.core import ratelimit, security_events, settings_store, timeutil
 from app.core.config import get_settings
 from app.core.db import run_in_transaction
 from app.core.errors import DeviceError
+from app.core.ratelimit import client_ip
 from app.core.security import matches_any
 from app.modules.devices import service as devices
 from app.modules.ingest import pipeline
@@ -36,11 +37,6 @@ PROVISION_LIMIT_PER_MIN = 10
 
 
 # ---------- hàm dùng chung ----------
-
-
-def client_ip(request: Request) -> str | None:
-    """IP client; uvicorn chạy --proxy-headers nên đây là IP Nginx ghi trong X-Forwarded-For."""
-    return request.client.host if request.client else None
 
 
 async def read_json(request: Request) -> dict:

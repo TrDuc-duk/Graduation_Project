@@ -245,3 +245,45 @@ async def nodes_with_samples(session: AsyncSession, start: datetime, end: dateti
         .distinct()
     )
     return list((await session.scalars(stmt)).all())
+
+
+async def public_raw(session: AsyncSession, node_id: int, start: datetime, end: datetime, limit: int) -> list[Row]:
+    """Số đo thô dùng được cho trang công khai trong (start, end]: bỏ bản mang cờ EXCLUDE_MASK, cũ → mới."""
+    stmt = (
+        select(
+            Measurement.measured_at,
+            Measurement.aqi_instant,
+            Measurement.pm25,
+            Measurement.pm10,
+            Measurement.temperature,
+            Measurement.humidity,
+            Measurement.co2,
+            Measurement.tvoc,
+        )
+        .where(
+            Measurement.node_id == node_id,
+            Measurement.measured_at > start,
+            Measurement.measured_at <= end,
+            Measurement.qc_flags.op("&")(int(EXCLUDE_MASK)) == 0,
+        )
+        .order_by(Measurement.measured_at, Measurement.id)
+        .limit(limit)
+    )
+    return list((await session.execute(stmt)).all())
+
+
+async def bucket_means(session: AsyncSession, node_id: int, start: datetime, end: datetime, minutes: int) -> list[Row]:
+    """Trung bình theo khung `minutes` phút (`time_bucket`) của số đo dùng được trong (start, end].
+
+    Nhãn khung là thời điểm cuối: khung (t − minutes, t] mang nhãn t, cùng quy ước với dữ liệu giờ.
+    """
+    stmt = text(
+        "SELECT time_bucket(make_interval(mins => :m), measured_at - interval '1 microsecond') "
+        "+ make_interval(mins => :m) AS bucket_end, count(*) AS n, avg(pm25) AS pm25, avg(pm10) AS pm10, "
+        "avg(temperature) AS temperature, avg(humidity) AS humidity, "
+        "avg(co2)::double precision AS co2, avg(tvoc)::double precision AS tvoc "
+        "FROM measurements WHERE node_id = :node_id AND measured_at > :start AND measured_at <= :end "
+        "AND qc_flags & :mask = 0 GROUP BY 1 ORDER BY 1"
+    )
+    params = {"m": minutes, "node_id": node_id, "start": start, "end": end, "mask": int(EXCLUDE_MASK)}
+    return list((await session.execute(stmt, params)).all())

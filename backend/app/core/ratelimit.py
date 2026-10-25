@@ -3,6 +3,7 @@
 Chỉ đúng khi chạy một tiến trình API (RATE_LIMIT_BACKEND=memory, API_PROCESSES=1).
 """
 
+from fastapi import Request
 from limits import RateLimitItemPerMinute
 from limits.aio.storage import MemoryStorage
 from limits.aio.strategies import MovingWindowRateLimiter
@@ -19,3 +20,8 @@ async def hit(key: str, per_minute: int) -> bool:
 async def reset() -> None:
     """Xóa mọi bộ đếm (dùng trong test)."""
     await _storage.reset()
+
+
+def client_ip(request: Request) -> str | None:
+    """IP client; uvicorn chạy --proxy-headers nên đây là IP Nginx ghi trong X-Forwarded-For (backend_design 14.2)."""
+    return request.client.host if request.client else None

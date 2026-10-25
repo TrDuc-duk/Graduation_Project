@@ -13,13 +13,15 @@ from statistics import fmean
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import settings_store
+from app.core import settings_store, timeutil
 from app.core.aqi_scale import level_of
 from app.modules.devices import service as devices
 from app.modules.devices.models import Node
 from app.modules.hourly import service as hourly
+from app.modules.hourly.aggregate import aqi_from_pm
 from app.modules.hourly.models import NodeHourly
 from app.modules.stations.schemas import (
+    UNITS,
     FreshnessOut,
     HourlyOut,
     LatestOut,
@@ -364,7 +366,7 @@ def _station_fields(s: PublicStation, now: datetime) -> dict:
             level=lv.key if (lv := level_of(h.aqi)) else None,
             dominant=_dominant(h),
             n_samples=h.n_samples,
-            coverage=None if h.coverage is None else round(h.coverage, 2),
+            coverage=_r2(h.coverage),
         )
         if h
         else None,
@@ -381,3 +383,143 @@ def _dominant(h: NodeHourly) -> str | None:
 def _r(value: float | None) -> float | None:
     """Làm tròn 1 chữ số thập phân, giữ null."""
     return None if value is None else round(value, 1)
+
+
+# ---------- chuỗi thời gian, chu kỳ ngày, xếp hạng (backend_design 11.3–11.4) ----------
+
+SERIES_METRICS = ("aqi", "pm25", "pm10", "temperature", "humidity", "co2", "tvoc")
+DEFAULT_SERIES_METRICS = ("aqi", "pm25", "pm10", "temperature", "humidity")
+MAX_RANGE = {
+    "raw": timedelta(days=2),
+    "5min": timedelta(days=7),
+    "hour": timedelta(days=90),
+    "day": timedelta(days=730),
+}
+RAW_POINT_LIMIT = 20_000
+_INT_METRICS = ("aqi", "co2", "tvoc")
+
+
+class RangeTooLarge(Exception):
+    """Khoảng thời gian vượt giới hạn của độ phân giải (422 RANGE_TOO_LARGE)."""
+
+    def __init__(self, resolution: str):
+        super().__init__(resolution)
+        self.resolution = resolution
+        self.max_days = MAX_RANGE[resolution].days
+
+
+async def series(
+    session: AsyncSession, node: Node, metrics: list[str], start: datetime, end: datetime, resolution: str
+) -> dict:
+    """Chuỗi thời gian dạng cột trong (start, end]. Mốc không có dữ liệu trả null (biểu đồ để khoảng đứt).
+
+    raw: số đo thô tin cậy (AQI tức thời); 5min: trung bình 5 phút (AQI từ PM trung bình); hour: `node_hourly`
+    (nhãn h = cửa sổ (h−1, h], kèm `n_samples`, `coverage`); day: trung bình ngày theo giờ Việt Nam.
+    """
+    if end - start > MAX_RANGE[resolution]:
+        raise RangeTooLarge(resolution)
+    out: dict = {"station_id": node.station_code, "resolution": resolution, "from": start, "to": end}
+    if resolution == "raw":
+        rows = await telemetry.public_raw(session, node.id, start, end, RAW_POINT_LIMIT)
+        out["time"] = [r.measured_at for r in rows]
+        values = {m: [getattr(r, "aqi_instant" if m == "aqi" else m) for r in rows] for m in metrics}
+    elif resolution == "5min":
+        step = timedelta(minutes=5)
+        by_time = {r.bucket_end: r for r in await telemetry.bucket_means(session, node.id, start, end, 5)}
+        out["time"] = _grid(start, end, step)
+        values = _columns(out["time"], by_time, metrics, aqi=lambda r: aqi_from_pm(r.pm25, r.pm10))
+    elif resolution == "hour":
+        by_time = {r.hour_end: r for r in await hourly.series_hour(session, node.id, start, end)}
+        out["time"] = _grid(start, end, timedelta(hours=1))
+        values = _columns(out["time"], by_time, metrics, aqi=lambda r: r.aqi, suffix="_avg")
+        out["n_samples"] = [by_time[t].n_samples if t in by_time else 0 for t in out["time"]]
+        out["coverage"] = [_r2(by_time[t].coverage) if t in by_time else None for t in out["time"]]
+    else:
+        by_day = {d.day: d for d in await hourly.series_day(session, node.id, start, end)}
+        out["time"] = _days(start, end)
+        values = _columns(out["time"], by_day, metrics, aqi=lambda d: d.aqi)
+        out["n_hours"] = [by_day[d].n_hours if d in by_day else 0 for d in out["time"]]
+    for m in metrics:
+        out[m] = [_metric_value(m, v) for v in values[m]]
+    out["units"] = {k: v for k, v in UNITS.items() if k in metrics}
+    return out
+
+
+async def profile_of(session: AsyncSession, node: Node, days: int, now: datetime) -> list[dict]:
+    """Chu kỳ ngày: AQI giờ trung bình cho 24 giờ trong ngày (giờ Việt Nam) trong `days` ngày gần nhất."""
+    found = {p.hour_of_day: p for p in await hourly.profile(session, node.id, now - timedelta(days=days))}
+    return [
+        {
+            "hour_of_day": h,
+            "aqi": round(found[h].aqi) if h in found else None,
+            "n_hours": found[h].n_hours if h in found else 0,
+        }
+        for h in range(24)
+    ]
+
+
+async def ranking(session: AsyncSession, metric: str, now: datetime) -> list[dict]:
+    """Xếp hạng trạm theo AQI giờ (hoặc PM2.5 giờ) mới nhất, cao trước; trạm mất kết nối hoặc chưa có giờ xếp cuối."""
+    stations = await public_stations(session, now)
+
+    def value(s: PublicStation) -> float | None:
+        if s.hourly is None:
+            return None
+        return s.hourly.aqi if metric == "aqi" else s.hourly.pm25_avg
+
+    ranked = sorted(stations, key=lambda s: (s.freshness.is_stale or value(s) is None, -(value(s) or 0)))
+    items = []
+    for i, s in enumerate(ranked, start=1):
+        h = s.hourly
+        items.append(
+            {
+                "rank": i,
+                "id": s.node.station_code,
+                "name": s.node.name,
+                "district": s.node.district,
+                "aqi": h.aqi if h else None,
+                "level": lv.key if h and (lv := level_of(h.aqi)) else None,
+                "pm25": _r(h.pm25_avg) if h else None,
+                "hour_end": h.hour_end if h else None,
+                "online": not s.freshness.is_stale,
+                "is_simulated": s.node.is_simulated,
+            }
+        )
+    return items
+
+
+def _grid(start: datetime, end: datetime, step: timedelta) -> list[datetime]:
+    """Các nhãn cuối khung cách đều `step` nằm trong (start, end]."""
+    epoch = datetime(1970, 1, 1, tzinfo=start.tzinfo)
+    first = start - (start - epoch) % step + step
+    last = end - (end - epoch) % step
+    return [first + i * step for i in range(int((last - first) / step) + 1)] if first <= last else []
+
+
+def _days(start: datetime, end: datetime) -> list:
+    """Các ngày (giờ Việt Nam) có giờ thuộc (start, end]; ngày của giờ h là ngày của h − 1 giờ."""
+    first = timeutil.to_local(start).date()
+    last = timeutil.to_local(end - timedelta(hours=1)).date()
+    return [first + timedelta(days=i) for i in range((last - first).days + 1)] if first <= last else []
+
+
+def _columns(times: list, by_time: dict, metrics: list[str], *, aqi, suffix: str = "") -> dict[str, list]:
+    """Giá trị từng chỉ số theo đúng lưới thời gian; mốc không có dữ liệu → None."""
+    out = {}
+    for m in metrics:
+        if m == "aqi":
+            out[m] = [aqi(by_time[t]) if t in by_time else None for t in times]
+        else:
+            out[m] = [getattr(by_time[t], f"{m}{suffix}") if t in by_time else None for t in times]
+    return out
+
+
+def _metric_value(metric: str, value: float | None) -> float | int | None:
+    """AQI, CO2, TVOC là số nguyên; còn lại 1 chữ số thập phân; null giữ null."""
+    if value is None:
+        return None
+    return round(value) if metric in _INT_METRICS else round(value, 1)
+
+
+def _r2(value: float | None) -> float | None:
+    return None if value is None else round(value, 2)

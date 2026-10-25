@@ -109,3 +109,13 @@ async def samples_for_hours(
 async def nodes_with_samples(session: AsyncSession, start: datetime, end: datetime) -> list[int]:
     """Node có số đo còn hiệu lực với measured_at trong (start, end] (để đóng/tổng hợp giờ)."""
     return await repository.nodes_with_samples(session, start, end)
+
+
+async def public_raw(session: AsyncSession, node_id: int, start: datetime, end: datetime, limit: int) -> list[Row]:
+    """Số đo thô tin cậy trong (start, end] cho biểu đồ công khai (tối đa `limit` điểm)."""
+    return await repository.public_raw(session, node_id, start, end, limit)
+
+
+async def bucket_means(session: AsyncSession, node_id: int, start: datetime, end: datetime, minutes: int) -> list[Row]:
+    """Trung bình số đo tin cậy theo khung `minutes` phút, nhãn = cuối khung."""
+    return await repository.bucket_means(session, node_id, start, end, minutes)
