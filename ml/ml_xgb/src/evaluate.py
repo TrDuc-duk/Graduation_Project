@@ -39,10 +39,20 @@ def summarize(table: pd.DataFrame, segment: str, metric: str = "MAE", model: str
 # ---------------------------------------------------------------------------
 # Đánh giá đầy đủ từ model đã lưu: bảng theo horizon/nguồn/mùa và biểu đồ.
 # ---------------------------------------------------------------------------
-import matplotlib  # noqa: E402
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+
+def _pyplot():
+    """Import matplotlib muộn, chỉ khi vẽ (backend_design 8.2, P4): inference không cần matplotlib.
+
+    Đặt backend Agg trước rồi mới import pyplot để chạy được trên máy không có màn hình.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    return plt
+
 
 COLORS = {"xgboost": "#2a78d6", "persistence": "#eb6834", "mean_24h": "#1baf7a",
           "same_hour_of_day": "#eda100"}
@@ -68,6 +78,7 @@ def _style(ax, title, xlabel, ylabel):
 
 
 def plot_error_by_horizon(table: pd.DataFrame, segment: str, out_path) -> None:
+    plt = _pyplot()
     t = table[table["segment"] == segment]
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.2))
     for ax, metric in zip(axes, ("MAE", "RMSE")):
@@ -91,6 +102,7 @@ def plot_error_by_horizon(table: pd.DataFrame, segment: str, out_path) -> None:
 
 def plot_predicted_vs_actual(df: pd.DataFrame, h: int, segment: str, out_path, days: int = 14) -> None:
     """df: target_time, actual, xgboost. Trái: chuỗi thời gian `days` ngày cuối; phải: scatter."""
+    plt = _pyplot()
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.2), gridspec_kw={"width_ratios": [2.2, 1]})
     tail = df[df["target_time"] >= df["target_time"].max() - pd.Timedelta(days=days)]
     a1.plot(tail["target_time"], tail["actual"], color=INK, linewidth=1.5, label="AQI thực tế")
@@ -115,6 +127,7 @@ def plot_predicted_vs_actual(df: pd.DataFrame, h: int, segment: str, out_path, d
 
 def plot_breakdown(bd: pd.DataFrame, segment: str, out_path, horizons=(3, 24, 72)) -> None:
     """MAE theo mùa: XGBoost vs persistence, mỗi horizon một panel."""
+    plt = _pyplot()
     d = bd[(bd["segment"] == segment) & (bd["group_type"] == "season") & bd["horizon"].isin(horizons)]
     if d.empty:
         return
