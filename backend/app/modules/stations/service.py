@@ -321,6 +321,11 @@ def to_detail_out(s: PublicStation, now: datetime) -> StationDetailOut:
     )
 
 
+async def current_hourly(session: AsyncSession, node_id: int, now: datetime) -> NodeHourly | None:
+    """AQI giờ hiện hành của trạm: giờ đã đóng gần nhất không cũ hơn 2 giờ (dùng chung web và trợ lý)."""
+    return await hourly.latest_closed_hour(session, node_id, now - HOURLY_FRESH)
+
+
 async def _public(session: AsyncSession, node: Node, lat: float, lng: float, now: datetime) -> PublicStation:
     """Ghép số đo tin cậy mới nhất, độ mới và AQI giờ hiện hành của một trạm."""
     latest = await latest_trusted(session, node.id)
@@ -330,7 +335,7 @@ async def _public(session: AsyncSession, node: Node, lat: float, lng: float, now
         lng=lng,
         latest=latest,
         freshness=await freshness(node, latest, now),
-        hourly=await hourly.latest_closed_hour(session, node.id, now - HOURLY_FRESH),
+        hourly=await current_hourly(session, node.id, now),
     )
 
 

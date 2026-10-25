@@ -18,9 +18,9 @@ HD = (21.0285, 105.8048)  # cách khoảng 4,7 km
 SENSITIVE_KEYS = {"battery", "battery_pct", "gateway_id", "gateway", "remote_ip", "ip", "payload", "last_ip"}
 
 
-def station(db, addr: int, coords: tuple[float, float] | None, **cols) -> int:
+def station(db, addr: int, coords: tuple[float, float] | None, name: str | None = None, **cols) -> int:
     """Node active, công khai, chu kỳ 900 giây; tọa độ (lat, lng) hoặc chưa có."""
-    node_id = add_node(db, addr, expected_interval_s=900, interval_locked=True, name=f"Trạm {addr}", **cols)
+    node_id = add_node(db, addr, expected_interval_s=900, interval_locked=True, name=name or f"Trạm {addr}", **cols)
     if coords:
         execute(db, "UPDATE nodes SET geom = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326) WHERE id = :id",
                 lat=coords[0], lng=coords[1], id=node_id)  # fmt: skip

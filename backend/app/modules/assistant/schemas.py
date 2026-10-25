@@ -37,14 +37,21 @@ class StationsOut(BaseModel):
 
 
 class CurrentOut(BaseModel):
-    """Kết quả get_current_air_quality: số đo hiện tại (bỏ số đo cách ly, nghi cũ) của trạm."""
+    """Kết quả get_current_air_quality.
+
+    `aqi` là AQI giờ (giờ đã đóng gần nhất, nhãn `aqi_hour_end` = cửa sổ (h−1, h]); mức, nhãn, khuyến nghị theo AQI
+    giờ. Chưa có AQI giờ thì `aqi` null (không thay bằng AQI tức thời). `aqi_instant` là AQI của lần đo gần nhất
+    (`measured_at`), cùng lần đo với PM2.5, PM10, nhiệt độ, độ ẩm. Bỏ số đo cách ly, nghi cũ.
+    """
 
     ok: Literal[True] = True
     station: StationRef
     aqi: int | None
-    aqi_kind: Literal["instant"]  # AQI tức thời từ một lần đo; AQI giờ chưa có (M2)
-    hourly_aqi: int | None  # luôn null cho tới khi có dữ liệu giờ; không thay bằng AQI tức thời
-    level: str | None  # good, moderate, usg, unhealthy, very_unhealthy, hazardous
+    aqi_kind: Literal["hourly"]
+    aqi_hour_end: datetime | None
+    hourly_aqi: int | None  # giống `aqi`, giữ để tương thích bản trước
+    aqi_instant: int | None
+    level: str | None  # good, moderate, usg, unhealthy, very_unhealthy, hazardous (theo AQI giờ)
     level_label: str | None
     advice: str | None
     pm25: float | None
@@ -52,7 +59,7 @@ class CurrentOut(BaseModel):
     temperature: float | None
     humidity: float | None
     units: dict[str, str]
-    measured_at: datetime
+    measured_at: datetime  # thời điểm lần đo gần nhất (PM, nhiệt độ, độ ẩm, AQI tức thời)
     age_minutes: int  # số phút từ lúc đo tới lúc hỏi
     stale: bool  # dữ liệu cũ: trạm không gửi số đo mới quá ngưỡng
     last_updated_at: datetime | None  # lúc server nhận số đo gần nhất

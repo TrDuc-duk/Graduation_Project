@@ -86,15 +86,18 @@ async def test_current_matches_stored_reading(client, db, clock):
     r = await get(client, "/stations/st001/current")
     body = r.json()
     assert r.status_code == 200 and body["ok"] is True
-    assert (body["aqi_kind"], body["hourly_aqi"], body["level"]) == ("instant", None, "usg")
+    # Chưa có giờ nào đóng: AQI giờ null, không thay bằng AQI tức thời (aqi_instant riêng)
+    assert (body["aqi_kind"], body["aqi"], body["hourly_aqi"], body["level"]) == ("hourly", None, None, None)
+    assert (body["aqi_instant"], body["aqi_hour_end"]) == (119, None)
     assert (body["pm25"], body["pm10"], body["temperature"], body["humidity"]) == (43.0, 51.0, 33.9, 70.8)
     assert body["measured_at"] == "2026-10-15T14:00:00+07:00" and body["age_minutes"] == 5
     assert body["stale"] is False and body["units"]["pm25"] == "µg/m³"
-    assert "AQI tức thời 119" in body["summary_vi"] and "14:00 ngày 15/10" in body["summary_vi"]
+    assert "chưa có AQI giờ" in body["summary_vi"] and "AQI tức thời 119" in body["summary_vi"]
+    assert "14:00 ngày 15/10" in body["summary_vi"]
     assert not all_keys(body) & ADMIN_FIELDS
     # cùng số đo với API dev của web
     [dev] = (await client.get("/api/v1/dev/nodes")).json()
-    assert (dev["latest"]["aqi_instant"], dev["latest"]["pm25"]) == (body["aqi"], body["pm25"])
+    assert (dev["latest"]["aqi_instant"], dev["latest"]["pm25"]) == (body["aqi_instant"], body["pm25"])
     [log] = rows(db, "SELECT tool, params, station_code, node_id, status, error_code FROM assistant_calls")
     assert log == ("get_current_air_quality", {"station": "st001"}, "ST001", node_id, "ok", None)
 
@@ -109,7 +112,7 @@ async def test_current_stale_and_null_values(client, db, clock):
     body = (await get(client, "/stations/Bách Khoa/current")).json()
     assert (body["pm25"], body["aqi"], body["level"], body["stale"]) == (None, None, None, True)
     assert body["summary_vi"].startswith("Lưu ý: dữ liệu của trạm đã cũ, lần cập nhật cuối lúc 14:00 ngày 15/10.")
-    assert "PM2.5 không có số đo" in body["summary_vi"] and "chưa tính được AQI" in body["summary_vi"]
+    assert "PM2.5 không có số đo" in body["summary_vi"] and "chưa tính được AQI tức thời" in body["summary_vi"]
 
 
 async def test_station_errors(client, db):
@@ -177,3 +180,27 @@ async def test_database_error_becomes_backend_unavailable(client, db, monkeypatc
     monkeypatch.setattr(service, "list_stations", broken)
     r = await get(client, "/stations")
     assert r.status_code == 503 and r.json()["code"] == "BACKEND_UNAVAILABLE"
+
+
+async def test_current_hourly_aqi_matches_public_api(client, db, clock):
+    """Cùng trạm, cùng thời điểm: AQI giờ của trợ lý trùng `hourly.aqi` của /public; mức theo AQI giờ (B7)."""
+    from datetime import timedelta
+
+    from app.modules.hourly import service as hourly
+
+    add_gateway(db)
+    node_id = add_node(db, 1, name="Bách Khoa", expected_interval_s=900, interval_locked=True)
+    execute(db, "UPDATE nodes SET geom = ST_SetSRID(ST_MakePoint(105.843, 21.005), 4326) WHERE id = :id", id=node_id)
+    clock.advance(seconds=-20)  # 13:59:40: số đo thuộc giờ 14:00
+    await ingest(client, items=[item(pm25=43.0, pm10=51.0)])
+    clock.advance(seconds=30)  # 14:00:10: Gateway xả buffer tiếp theo (30 giây), giờ 15:00 đang mở
+    await hourly.close_hour(clock.at - timedelta(seconds=10), clock.at + timedelta(minutes=3))
+    await ingest(client, items=[item(msg_id=13, pm25=80.0, pm10=90.0)])
+
+    body = (await get(client, "/stations/ST001/current")).json()
+    public = (await client.get("/api/v1/public/stations/ST001")).json()
+    assert body["aqi"] == body["hourly_aqi"] == public["hourly"]["aqi"] == 119
+    assert (body["aqi_kind"], body["level"], body["aqi_hour_end"]) == ("hourly", "usg", "2026-10-15T14:00:00+07:00")
+    assert body["aqi_instant"] == public["latest"]["aqi_instant"] and body["pm25"] == 80.0
+    assert body["measured_at"] == "2026-10-15T14:00:10+07:00"
+    assert "AQI giờ 119" in body["summary_vi"] and "từ 13:00 đến 14:00" in body["summary_vi"]

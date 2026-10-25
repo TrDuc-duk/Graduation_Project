@@ -7,13 +7,11 @@ from datetime import timedelta
 
 import httpx
 import pytest
-import uvicorn
 
 from app.core import events
 from app.core.db import get_sessionmaker, run_in_transaction
 from app.modules.hourly import service as hourly
 from app.modules.realtime import limits
-from app.modules.realtime.router import clear_public_cache
 from tests.conftest import T0
 from tests.integration.helpers import add_gateway
 from tests.integration.test_hourly_compute import add_measurement
@@ -23,20 +21,9 @@ TIMEOUT = 5.0
 
 
 @pytest.fixture
-async def base_url(db):
-    """Chạy ứng dụng thật trên cổng ngẫu nhiên (có lifespan: EventHub LISTEN); dừng sau test."""
-    from app.main import create_app
-
-    clear_public_cache()
-    server = uvicorn.Server(uvicorn.Config(create_app(), host="127.0.0.1", port=0, log_level="warning"))
-    task = asyncio.create_task(server.serve())
-    while not server.started:
-        await asyncio.sleep(0.02)
-    await asyncio.wait_for(events.hub.connected.wait(), TIMEOUT)
-    port = server.servers[0].sockets[0].getsockname()[1]
-    yield f"http://127.0.0.1:{port}/api/v1/stream/public"
-    server.should_exit = True
-    await asyncio.wait_for(task, TIMEOUT)
+def base_url(live_server):
+    """URL kênh SSE công khai trên server thật."""
+    return f"{live_server}/api/v1/stream/public"
 
 
 @pytest.fixture

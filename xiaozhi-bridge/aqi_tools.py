@@ -119,8 +119,10 @@ def register(server) -> None:
     server.register_tool(
         "get_current_air_quality",
         "CHỈ gọi khi người dùng hỏi về chất lượng không khí, bụi mịn, AQI, PM2.5, PM10 hoặc nhiệt độ, độ ẩm tại trạm "
-        "quan trắc của hệ thống. Trả AQI Mỹ tức thời, mức chất lượng, PM2.5, PM10, nhiệt độ, độ ẩm và thời điểm đo. "
-        "Đọc theo summary_vi, nói rõ tên trạm, đơn vị và thời điểm đo; nếu stale là true phải báo dữ liệu đã cũ. "
+        "quan trắc của hệ thống. Trả AQI Mỹ theo giờ (aqi, mức chất lượng của giờ đã đóng gần nhất), AQI tức thời "
+        "của lần đo gần nhất (aqi_instant), PM2.5, PM10, nhiệt độ, độ ẩm và thời điểm đo. aqi null nghĩa là chưa có "
+        "AQI giờ, không lấy AQI tức thời thay vào. Đọc theo summary_vi, nói rõ tên trạm, đơn vị và thời điểm; nếu "
+        "stale là true phải báo dữ liệu đã cũ. "
         "Nếu ok là false thì đọc message_vi; nếu có danh sách trạm thì hỏi lại người dùng. Không tự bịa số.",
         {"type": "object", "properties": {"station": STATION_PARAM}},
         _logged("get_current_air_quality", get_current_air_quality),

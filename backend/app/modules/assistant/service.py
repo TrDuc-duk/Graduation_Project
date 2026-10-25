@@ -4,7 +4,7 @@ Chatbot chỉ diễn đạt: số liệu, mức AQI, khuyến nghị và câu `s
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,12 +78,16 @@ async def current(session: AsyncSession, ref: str, ctx: CallContext) -> CurrentO
         )
     now = timeutil.now()
     fresh = await stations.freshness(node, latest, now)
-    level = level_of(latest.aqi_instant)
+    hour = await stations.current_hourly(session, node.id, now)
+    aqi = hour.aqi if hour else None
+    level = level_of(aqi)
     out = CurrentOut(
         station=_ref(node),
-        aqi=latest.aqi_instant,
-        aqi_kind="instant",
-        hourly_aqi=None,
+        aqi=aqi,
+        aqi_kind="hourly",
+        aqi_hour_end=_local(hour.hour_end) if hour else None,
+        hourly_aqi=aqi,
+        aqi_instant=latest.aqi_instant,
         level=level.key if level else None,
         level_label=level.label if level else None,
         advice=level.advice if level else None,
@@ -215,8 +219,16 @@ def current_text(c: CurrentOut) -> str:
     if c.stale:
         updated = say_time(c.last_updated_at) if c.last_updated_at else "không rõ"
         parts.append(f"Lưu ý: dữ liệu của trạm đã cũ, lần cập nhật cuối lúc {updated}.")
-    aqi = f"AQI tức thời {c.aqi}, mức {c.level_label}" if c.aqi is not None else "chưa tính được AQI"
-    parts.append(f"Trạm {c.station.name} ({c.station.code}) đo lúc {say_time(c.measured_at)}: {aqi}.")
+    if c.aqi is not None and c.aqi_hour_end is not None:
+        start = say_hour(c.aqi_hour_end - timedelta(hours=1))
+        parts.append(
+            f"Trạm {c.station.name} ({c.station.code}): AQI giờ {c.aqi}, mức {c.level_label} "
+            f"(trung bình từ {start} đến {say_time(c.aqi_hour_end)})."
+        )
+    else:
+        parts.append(f"Trạm {c.station.name} ({c.station.code}) chưa có AQI giờ (cần một giờ dữ liệu đã đóng).")
+    instant = f"AQI tức thời {c.aqi_instant}" if c.aqi_instant is not None else "chưa tính được AQI tức thời"
+    parts.append(f"Lần đo gần nhất lúc {say_time(c.measured_at)}: {instant}.")
     parts.append(
         f"PM2.5 {say_number(c.pm25, UNITS['pm25'])}, PM10 {say_number(c.pm10, UNITS['pm10'])}, "
         f"nhiệt độ {say_number(c.temperature, UNITS['temperature'])}, "
@@ -260,6 +272,11 @@ def say_number(value: float | None, unit: str = "", digits: int = 1) -> str:
         return "không có số đo"
     text = f"{value:.{digits}f}".replace(".", ",")
     return f"{text} {unit}" if unit else text
+
+
+def say_hour(t: datetime) -> str:
+    """Giờ dạng đọc: "13:00"."""
+    return timeutil.to_local(t).strftime("%H:%M")
 
 
 def say_time(t: datetime) -> str:
